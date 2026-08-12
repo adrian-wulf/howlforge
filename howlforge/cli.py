@@ -42,6 +42,10 @@ def _build_parser() -> argparse.ArgumentParser:
     cls.add_argument("text", nargs="+", help="The idea text to classify.")
 
     sub.add_parser("list", help="List notes currently in the vault.")
+
+    syn = sub.add_parser("synthesize", help="Synthesize recent notes into a digest.")
+    syn.add_argument("--days", type=int, default=7, help="Look back N days (default 7).")
+    syn.add_argument("--project", default=None, help="Restrict to one project slug.")
     return parser
 
 
@@ -117,6 +121,25 @@ def _cmd_list(args, settings) -> int:
     return 0
 
 
+def _cmd_synthesize(args, settings, lang) -> int:
+    try:
+        client = LLMClient(settings.llm_config, settings.llm_model)
+        from .synthesize import SynthesisError, synthesize
+        path = synthesize(
+            settings.vault_path,
+            client,
+            lang,
+            days=args.days,
+            project=args.project,
+            model=args.model,
+        )
+    except (LLMError, ClassifyError, SynthesisError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"synthesis saved -> {path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.WARNING)
     # LiteLLM's per-model cost-map warnings are noise for CLI users.
@@ -135,6 +158,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_add(args, settings, lang)
     if args.command == "list":
         return _cmd_list(args, settings)
+    if args.command == "synthesize":
+        return _cmd_synthesize(args, settings, lang)
     return 0
 
 

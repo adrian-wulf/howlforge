@@ -57,6 +57,17 @@ curl -X POST localhost:8000/api/capture -H 'content-type: application/json' \
 # GET /health
 ```
 
+### Nightly synthesis (append-only)
+
+Turn the last few days of ideas into an actionable digest. Each run writes a fresh
+`generated: true` note under `_MOC/` - your hand-written notes are never touched.
+
+```bash
+howlforge synthesize                    # digest of last 7 days, all projects
+howlforge synthesize --days 14          # longer window
+howlforge synthesize --project cowboy-farm   # one project only
+```
+
 Open the vault folder in Obsidian and filter notes with Dataview:
 
 ```dataview
@@ -70,7 +81,7 @@ WHERE status = "raw" AND project = "cowboy-farm"
 - [x] Vault schema + controlled vocabulary + PL/EN i18n
 - [x] Classification prompt + LiteLLM integration + CLI
 - [x] Telegram bot (capture) + FastAPI (HTTP capture endpoint)
-- [ ] Nightly AI synthesis into project pages / MOC (append-only)
+- [x] Nightly AI synthesis into project pages / MOC (append-only)
 - [ ] Lightweight web panel (list / filter / edit)
 - [ ] Semantic search (sqlite-vec)
 - [ ] JSON/CSV export for engine (Unity / Godot / Unreal)
