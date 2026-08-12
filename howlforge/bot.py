@@ -18,6 +18,7 @@ import logging
 from typing import Dict
 
 from aiogram import Bot, Dispatcher, F, Router
+from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
@@ -289,7 +290,10 @@ async def _main() -> None:
         logger.warning("TELEGRAM_BOT_TOKEN is not set. Bot is idle (no polling).")
         while True:
             await asyncio.sleep(3600)
-    bot = Bot(settings.telegram_bot_token, parse_mode=ParseMode.MARKDOWN)
+    bot = Bot(
+        settings.telegram_bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN),
+    )
     dp = Dispatcher()
     dp.include_router(router)
     logger.info("HowlForge bot starting in polling mode...")
