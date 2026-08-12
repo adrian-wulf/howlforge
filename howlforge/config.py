@@ -25,6 +25,7 @@ class Settings:
     vault_path: Path = _DEFAULT_VAULT
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    telegram_chat_ids: str = ""
     llm_model: str = "howl-classify"
     llm_config: Path = _DEFAULT_LLM_CONFIG
     panel_password: str = ""
@@ -38,6 +39,7 @@ def get_settings() -> Settings:
         vault_path=Path(os.getenv("HOWLFORGE_VAULT_PATH", "vault")),
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
+        telegram_chat_ids=os.getenv("TELEGRAM_CHAT_IDS", ""),
         llm_model=os.getenv("HOWLFORGE_LLM_MODEL", "howl-classify"),
         llm_config=Path(os.getenv("HOWLFORGE_LLM_CONFIG", "howlforge/llm_config.yaml")),
         panel_password=os.getenv("HOWLFORGE_PANEL_PASSWORD", ""),

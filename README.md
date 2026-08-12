@@ -101,13 +101,23 @@ howlforge add "Idle farming where crops evolve into monsters at night"
 
 ### Telegram bot
 
-Set `TELEGRAM_BOT_TOKEN` (and optionally `TELEGRAM_CHAT_ID`) in `.env`, then:
+Set `TELEGRAM_BOT_TOKEN` in `.env`, then:
 
 ```bash
 howlforge-bot               # or: python -m howlforge.bot
 ```
 
-Commands: `/help`, `/lang`, `/newcat Name sub1,sub2`.
+**Restrict to you only (optional):** set one or several chat/user IDs - the bot
+ignores everyone else.
+
+```bash
+TELEGRAM_CHAT_IDS=123456789,987654321
+```
+
+Commands: `/help`, `/lang`, `/newcat Name sub1,sub2`, `/cancel`.
+
+The bot shows a reply keyboard: **Add idea** (pick a category, then type the note),
+**New category**, **Help**, **Language**. Or just type a message and it auto-routes.
 
 ### Web panel + API
 
