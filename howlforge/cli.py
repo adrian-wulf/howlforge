@@ -13,6 +13,7 @@ import argparse
 import json
 import logging
 import sys
+from pathlib import Path
 
 from . import __version__
 from .classify import ClassifyError, classify
@@ -52,6 +53,11 @@ def _build_parser() -> argparse.ArgumentParser:
     srch = sub.add_parser("search", help="Semantic search over the vault.")
     srch.add_argument("query", nargs="+", help="The search query.")
     srch.add_argument("-k", type=int, default=5, help="Number of results (default 5).")
+
+    exp = sub.add_parser("export", help="Export notes to JSON or CSV for a game engine.")
+    exp.add_argument("--format", choices=["json", "csv"], default="json", help="Output format.")
+    exp.add_argument("--project", default=None, help="Restrict to one project slug.")
+    exp.add_argument("--out", default=None, help="Output file path (default: stdout).")
     return parser
 
 
@@ -175,6 +181,19 @@ def _cmd_search(args, settings) -> int:
     return 0
 
 
+def _cmd_export(args, settings) -> int:
+    from .export import export_file, generate
+
+    if args.out:
+        path = export_file(
+            settings.vault_path, Path(args.out), args.format, project=args.project
+        )
+        print(f"exported -> {path}")
+    else:
+        print(generate(settings.vault_path, args.format, project=args.project), end="")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.WARNING)
     # LiteLLM's per-model cost-map warnings are noise for CLI users.
@@ -199,6 +218,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_index(args, settings)
     if args.command == "search":
         return _cmd_search(args, settings)
+    if args.command == "export":
+        return _cmd_export(args, settings)
     return 0
 
 

@@ -94,6 +94,19 @@ howlforge search "farming" -k 10        # more results
 The index is stored under `<vault>/.howlforge/` and is excluded from Obsidian and
 the note listing.
 
+### Export to engine (JSON / CSV)
+
+Load mechanics and assets into tooling or Unity / Godot / Unreal:
+
+```bash
+howlforge export --format json            # all notes as JSON (stdout)
+howlforge export --format csv --out notes.csv
+howlforge export --format json --project cowboy-farm --out cowboy.json
+# GET /api/export?format=json&project=wolfpack
+```
+
+JSON includes tags/related as lists; CSV is flat scalar columns for spreadsheets.
+
 Open the vault folder in Obsidian and filter notes with Dataview:
 
 ```dataview
@@ -110,7 +123,7 @@ WHERE status = "raw" AND project = "cowboy-farm"
 - [x] Nightly AI synthesis into project pages / MOC (append-only)
 - [x] Lightweight web panel (list / filter / edit)
 - [x] Semantic search (sqlite-vec style)
-- [ ] JSON/CSV export for engine (Unity / Godot / Unreal)
+- [x] JSON/CSV export for engine (Unity / Godot / Unreal)
 
 ## Architecture
 

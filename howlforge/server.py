@@ -117,6 +117,19 @@ def api_notes(
     return rows
 
 
+@app.get("/api/export")
+def api_export(fmt: str = "json", project: Optional[str] = None) -> Response:
+    from .export import generate
+
+    settings = get_settings()
+    fmt = fmt.lower()
+    if fmt not in ("json", "csv"):
+        raise HTTPException(status_code=422, detail="format must be 'json' or 'csv'")
+    media = "application/json" if fmt == "json" else "text/csv"
+    payload = generate(settings.vault_path, fmt, project)
+    return Response(content=payload, media_type=media)
+
+
 @app.get("/api/search")
 def api_search(q: str, k: int = 5) -> List[Dict[str, object]]:
     from .llm import LLMClient, LLMError
