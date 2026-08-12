@@ -32,6 +32,7 @@ dependencies = [
     "aiogram>=3.4",
     "fastapi>=0.111",
     "uvicorn>=0.30",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]

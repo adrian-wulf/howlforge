@@ -81,6 +81,22 @@ uvicorn howlforge.server:app --host 0.0.0.0 --port 8000
   `PATCH /api/notes/{path}`, `POST /api/capture` (`ai: false` = no key needed;
   `ai: true` = classify).
 
+### Protect the panel (hosting)
+
+Set a password in `.env` and the panel + API require login:
+
+```bash
+HOWLFORGE_PANEL_PASSWORD=YourStrongPassword!
+```
+
+- Unauthenticated page requests redirect to `/login`; API calls return `401`.
+- Leave it empty for an open, local-only panel.
+
+**Hosting note:** HowlForge keeps its vault on disk, so pick a host with a
+persistent filesystem - a free VPS, or Fly.io / Railway / Render / Oracle free
+tier. Pure serverless (Netlify/Vercel functions) has an ephemeral filesystem, so
+the vault would not persist between requests.
+
 ### Nightly synthesis (append-only)
 
 Turn the last few days of ideas into an actionable digest. Each run writes a fresh

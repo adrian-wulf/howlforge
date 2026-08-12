@@ -167,6 +167,10 @@ def ui_strings(lang: str) -> Dict[str, str]:
         "category_name_hint": "Category name, e.g. Narrative",
         "subcategories_hint": "Subcategories, comma-separated (optional)",
         "add": "Add",
+        "password": "Password",
+        "log_in": "Log in",
+        "bad_password": "Wrong password.",
+        "logout": "Log out",
     }
     if lang == "en":
         return en
@@ -209,4 +213,8 @@ def ui_strings(lang: str) -> Dict[str, str]:
         "category_name_hint": "Nazwa kategorii, np. Narracja",
         "subcategories_hint": "Podkategorie, oddzielone przecinkami (opcjonalne)",
         "add": "Dodaj",
+        "password": "Hasło",
+        "log_in": "Zaloguj się",
+        "bad_password": "Błędne hasło.",
+        "logout": "Wyloguj",
     }

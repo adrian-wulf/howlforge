@@ -65,7 +65,10 @@
 <body>
   <header>
     <h1>HowlForge</h1>
-    <span class="muted" style="margin-left:auto">{{ notes|length }} {{ ui.notes_count }}</span>
+    <span class="muted" style="margin-left:auto">
+      {{ notes|length }} {{ ui.notes_count }}
+      {% if auth_enabled %} · <a href="/logout" style="color:var(--muted)">{{ ui.logout }}</a>{% endif %}
+    </span>
   </header>
   <main>
     <div id="flash" class="flash"></div>

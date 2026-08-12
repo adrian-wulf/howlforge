@@ -27,6 +27,7 @@ class Settings:
     telegram_chat_id: str = ""
     llm_model: str = "howl-classify"
     llm_config: Path = _DEFAULT_LLM_CONFIG
+    panel_password: str = ""
 
 
 def get_settings() -> Settings:
@@ -39,4 +40,5 @@ def get_settings() -> Settings:
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
         llm_model=os.getenv("HOWLFORGE_LLM_MODEL", "howl-classify"),
         llm_config=Path(os.getenv("HOWLFORGE_LLM_CONFIG", "howlforge/llm_config.yaml")),
+        panel_password=os.getenv("HOWLFORGE_PANEL_PASSWORD", ""),
     )

@@ -11,12 +11,15 @@ Run with::
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
+from starlette.responses import JSONResponse, RedirectResponse
 
 from . import categories as categories_mod
 from .capture import CaptureError, capture, capture_manual
@@ -27,6 +30,59 @@ from .vault import create_project, list_notes, list_projects, read_note, update_
 
 app = FastAPI(title="HowlForge", version="0.1.0")
 _templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+_COOKIE = "howlforge_auth"
+_PUBLIC_PATHS = {"/login", "/health", "/logout", "/favicon.ico"}
+
+
+def _auth_token(password: str) -> str:
+    return hmac.new(password.encode(), b"howlforge-panel", hashlib.sha256).hexdigest()
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    settings = get_settings()
+    password = settings.panel_password
+    if not password:
+        return await call_next(request)
+    path = request.url.path
+    if path in _PUBLIC_PATHS or path.startswith("/login") or path.startswith("/logout"):
+        return await call_next(request)
+    if request.cookies.get(_COOKIE) == _auth_token(password):
+        return await call_next(request)
+    if path.startswith("/api"):
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+    return RedirectResponse(url="/login", status_code=302)
+
+
+@app.get("/login")
+def login_page(request: Request) -> Response:
+    ui = ui_strings(get_settings().language)
+    return _templates.TemplateResponse(request, "login.html", {"request": request, "ui": ui})
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    form = await request.form()
+    password = form.get("password") or ""
+    settings = get_settings()
+    if hmac.compare_digest(password, settings.panel_password):
+        resp = RedirectResponse(url="/panel", status_code=303)
+        resp.set_cookie(
+            _COOKIE, _auth_token(settings.panel_password), httponly=True, samesite="lax"
+        )
+        return resp
+    ui = ui_strings(settings.language)
+    return _templates.TemplateResponse(
+        request, "login.html", {"request": request, "ui": ui, "error": ui["bad_password"]}
+    )
+
+
+@app.get("/logout")
+def logout():
+    resp = RedirectResponse(url="/login", status_code=303)
+    resp.delete_cookie(_COOKIE)
+    return resp
 
 
 class CaptureRequest(BaseModel):
@@ -99,6 +155,7 @@ def panel(request: Request) -> Response:
         {
             "request": request,
             "ui": ui,
+            "auth_enabled": bool(settings.panel_password),
             "notes": rows,
             "projects": projects,
             "statuses": vocabulary.STATUSES,
