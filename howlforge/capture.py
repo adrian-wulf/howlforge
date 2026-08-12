@@ -81,8 +81,16 @@ def capture_manual(
     return CaptureResult(note=note, path=path)
 
 
-def capture(text: str, settings: Settings, client: LLMClient | None = None) -> CaptureResult:
+def capture(
+    text: str,
+    settings: Settings,
+    client: LLMClient | None = None,
+    project: Optional[str] = None,
+) -> CaptureResult:
     """Classify, validate and save ``text``; return the note and its path.
+
+    ``project`` overrides the AI-chosen project (useful when the user explicitly
+    picked a project in the bot/panel).
 
     Raises :class:`CaptureError` when the text is empty or the LLM step fails.
     """
@@ -95,6 +103,8 @@ def capture(text: str, settings: Settings, client: LLMClient | None = None) -> C
         note = classify(text, client, lang, categories=cats)
     except (LLMError, ClassifyError) as exc:
         raise CaptureError(str(exc)) from exc
+    if project is not None:
+        note.project = _slugify(project) or None
     path = write_note(note, settings.vault_path)
     return CaptureResult(note=note, path=path)
 

@@ -1,10 +1,12 @@
 """Telegram bot: capture ideas from your phone.
 
 Features:
-* Optional owner whitelist (``TELEGRAM_CHAT_ID`` / ``TELEGRAM_CHAT_IDS``). When set,
-  only those chat/user IDs are served; everyone else is ignored.
-* A reply-keyboard menu ("Dodaj pomysl", "Nowa kategoria", "Pomoc", "Jezyk") and a
-  small guided flow: pick a category, then type the note.
+* Optional owner whitelist (``TELEGRAM_CHAT_ID`` / ``TELEGRAM_CHAT_IDS``).
+* Reply-keyboard menu and a guided flow:
+    Add idea -> pick project -> pick category -> type the note
+    New project -> type the name
+    New category -> type name and subcategories
+* Free-text messages are auto-routed (AI classify if possible, else manual).
 
 Run with::
 
@@ -27,12 +29,13 @@ from . import categories as categories_mod
 from .capture import CaptureError, capture, capture_manual, reply_text
 from .config import Settings, get_settings
 from .i18n import normalize_lang
+from .vault import create_project, list_projects
 
 logger = logging.getLogger(__name__)
 
 router = Router()
 
-# Per-chat flow state: chat_id -> {"step": str, "category": str|None, "lang": str}
+# Per-chat flow state: chat_id -> {"step", "project", "category", "lang"}
 _flows: Dict[int, Dict[str, object]] = {}
 
 
@@ -64,32 +67,44 @@ def _lang(message: Message) -> str:
 def _set_flow(message: Message, **kwargs: object) -> None:
     flow = _flows.setdefault(message.chat.id, {})
     flow.update(kwargs)
-    if "lang" not in flow:
-        flow["lang"] = normalize_lang(get_settings().language)
+    flow.setdefault("lang", normalize_lang(get_settings().language))
 
 
 def _clear_flow(message: Message) -> None:
     _flows.pop(message.chat.id, None)
 
 
+def _L(lang: str, en: str, pl: str) -> str:
+    return en if lang == "en" else pl
+
+
 def _menu(lang: str) -> ReplyKeyboardMarkup:
-    if lang == "en":
-        labels = [["Add idea", "New category"], ["Help", "Language"]]
-    else:
-        labels = [["Dodaj pomysł", "Nowa kategoria"], ["Pomoc", "Język"]]
+    labels = (
+        [["Add idea", "New project"], ["New category", "Language"], ["Help"]]
+        if lang == "en"
+        else [["Dodaj pomysł", "Nowy projekt"], ["Nowa kategoria", "Język"], ["Pomoc"]]
+    )
     kb = [[KeyboardButton(text=t) for t in row] for row in labels]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 
+def _project_menu(projects: list[str], lang: str) -> ReplyKeyboardMarkup:
+    no_project = _L(lang, "No project", "Brak projektu")
+    cancel = _L(lang, "Cancel", "Anuluj")
+    rows = [[KeyboardButton(text=p)] for p in projects]
+    rows.append([KeyboardButton(text=no_project)])
+    rows.append([KeyboardButton(text=cancel)])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+
+
 def _category_menu(categories: list[str], lang: str) -> ReplyKeyboardMarkup:
-    labels = list(categories)
     auto = "Auto (AI)"
-    cancel = "Cancel" if lang == "en" else "Anuluj"
+    cancel = _L(lang, "Cancel", "Anuluj")
     rows = []
-    for i in range(0, len(labels), 2):
-        row = [KeyboardButton(text=labels[i])]
-        if i + 1 < len(labels):
-            row.append(KeyboardButton(text=labels[i + 1]))
+    for i in range(0, len(categories), 2):
+        row = [KeyboardButton(text=categories[i])]
+        if i + 1 < len(categories):
+            row.append(KeyboardButton(text=categories[i + 1]))
         rows.append(row)
     rows.append([KeyboardButton(text=auto)])
     rows.append([KeyboardButton(text=cancel)])
@@ -100,14 +115,14 @@ def _help_text(lang: str) -> str:
     if lang == "en":
         return (
             "HowlForge\n"
-            "Send any thought/idea and I'll classify and save it.\n"
-            "Buttons: Add idea / New category.\n"
+            "Send any thought and I'll classify and save it.\n"
+            "Buttons: Add idea / New project / New category.\n"
             "Commands: /help, /lang, /newcat Name sub1,sub2, /cancel"
         )
     return (
         "HowlForge\n"
-        "Wyślij dowolną myśl/pomysł, a ja ją sklasyfikuję i zapiszę.\n"
-        "Przyciski: Dodaj pomysł / Nowa kategoria.\n"
+        "Wyślij dowolną myśl, a ja ją sklasyfikuję i zapiszę.\n"
+        "Przyciski: Dodaj pomysł / Nowy projekt / Nowa kategoria.\n"
         "Komendy: /help, /lang, /newcat Nazwa pod1,pod2, /cancel"
     )
 
@@ -161,7 +176,7 @@ async def on_newcat(message: Message) -> None:
     except ValueError as exc:
         await message.answer(f"Could not add category: {exc}")
         return
-    done = "Added category" if _lang(message) == "en" else "Dodano kategorię"
+    done = _L(_lang(message), "Added category", "Dodano kategorię")
     await message.answer(f"{done}: {slug}")
 
 
@@ -173,89 +188,126 @@ async def on_text(message: Message) -> None:
     lang = _lang(message)
     text = (message.text or "").strip()
 
-    # --- Menu buttons / flow control -------------------------------------
-    add_labels = {"Dodaj pomysł", "Add idea"}
-    cat_labels = {"Nowa kategoria", "New category"}
-    help_labels = {"Pomoc", "Help"}
-    lang_labels = {"Język", "Language"}
-    cancel_labels = {"Anuluj", "Cancel"}
-    auto_labels = {"Auto (AI)"}
+    add_idea = _L(lang, "Add idea", "Dodaj pomysł")
+    new_project = _L(lang, "New project", "Nowy projekt")
+    new_category = _L(lang, "New category", "Nowa kategoria")
+    help_ = _L(lang, "Help", "Pomoc")
+    lang_btn = _L(lang, "Language", "Język")
+    cancel = _L(lang, "Cancel", "Anuluj")
+    no_project = _L(lang, "No project", "Brak projektu")
 
-    if text in add_labels:
-        _set_flow(message, step="pick_category")
-        cats = list(categories_mod.all_categories(settings.vault_path))
-        prompt = "Pick a category:" if lang == "en" else "Wybierz kategorię:"
-        await message.answer(prompt, reply_markup=_category_menu(cats, lang))
+    # --- Main menu buttons -------------------------------------------------
+    if text == add_idea:
+        projects = list_projects(settings.vault_path)
+        _set_flow(message, step="pick_project")
+        prompt = _L(lang, "Pick a project:", "Wybierz projekt:")
+        await message.answer(prompt, reply_markup=_project_menu(projects, lang))
         return
-    if text in cat_labels:
+    if text == new_project:
+        _set_flow(message, step="await_project")
+        prompt = _L(lang, "Send the project name:", "Podaj nazwę projektu:")
+        await message.answer(prompt)
+        return
+    if text == new_category:
         _set_flow(message, step="await_category")
-        prompt = (
-            "Send the category name and optional subcategories: Name sub1,sub2"
-            if lang == "en"
-            else "Podaj nazwę kategorii i opcjonalnie podkategorie: Nazwa pod1,pod2"
+        prompt = _L(
+            lang,
+            "Send the category name and optional subcategories: Name sub1,sub2",
+            "Podaj nazwę kategorii i opcjonalnie podkategorie: Nazwa pod1,pod2",
         )
         await message.answer(prompt)
         return
-    if text in help_labels:
+    if text == help_:
         await message.answer(_help_text(lang), reply_markup=_menu(lang))
         return
-    if text in lang_labels:
-        cur = _lang(message)
-        new = "en" if cur == "pl" else "pl"
+    if text == lang_btn:
+        new = "en" if lang == "pl" else "pl"
         _set_flow(message, lang=new)
         await message.answer(f"Language: {new}", reply_markup=_menu(new))
         return
-    if text in cancel_labels:
+    if text == cancel:
         _clear_flow(message)
         await message.answer(_help_text(lang), reply_markup=_menu(lang))
         return
 
     flow = _flows.get(message.chat.id)
 
-    # --- Guided: choose category -----------------------------------------
-    if flow and flow.get("step") == "pick_category":
-        if text in auto_labels:
-            _set_flow(message, step="await_idea", category=None)
-            prompt = (
-                "Send the idea text - I'll classify it with AI."
-                if lang == "en"
-                else "Napisz treść pomysłu - sklasyfikuję ją AI."
-            )
-            await message.answer(prompt)
-            return
-        # text should be a category slug/name
-        cats = categories_mod.all_categories(settings.vault_path)
-        chosen = text.lower()
-        if chosen in cats:
-            _set_flow(message, step="await_idea", category=chosen)
-            prompt = (
-                f"Category: {chosen}. Now send the idea text."
-                if lang == "en"
-                else f"Kategoria: {chosen}. Teraz napisz treść pomysłu."
-            )
-            await message.answer(prompt)
+    # --- Guided: pick project ----------------------------------------------
+    if flow and flow.get("step") == "pick_project":
+        projects = list_projects(settings.vault_path)
+        if text == no_project:
+            _set_flow(message, step="pick_category", project=None)
+        elif text in projects:
+            _set_flow(message, step="pick_category", project=text)
         else:
-            await message.answer("Unknown category, pick again.")
+            await message.answer(
+                _L(lang, "Unknown project, pick again.", "Nieznany projekt, wybierz ponownie.")
+            )
+            return
+        cats = list(categories_mod.all_categories(settings.vault_path))
+        prompt = _L(lang, "Pick a category:", "Wybierz kategorię:")
+        await message.answer(prompt, reply_markup=_category_menu(cats, lang))
         return
 
-    # --- Guided: awaiting idea text --------------------------------------
+    # --- Guided: pick category ---------------------------------------------
+    if flow and flow.get("step") == "pick_category":
+        if text == "Auto (AI)":
+            _set_flow(message, step="await_idea", category=None)
+        else:
+            cats = categories_mod.all_categories(settings.vault_path)
+            chosen = text.lower()
+            if chosen not in cats:
+                await message.answer(
+                    _L(
+                        lang,
+                        "Unknown category, pick again.",
+                        "Nieznana kategoria, wybierz ponownie.",
+                    )
+                )
+                return
+            _set_flow(message, step="await_idea", category=chosen)
+        prompt = _L(
+            lang,
+            "Now send the idea text.",
+            "Teraz napisz treść pomysłu.",
+        )
+        await message.answer(prompt)
+        return
+
+    # --- Guided: awaiting idea text ----------------------------------------
     if flow and flow.get("step") == "await_idea":
         category = flow.get("category")
+        project = flow.get("project")
         try:
             if category:
                 result = capture_manual(
-                    text, settings, category=str(category), subcategory="none"
+                    text,
+                    settings,
+                    project=str(project) if project else None,
+                    category=str(category),
                 )
             else:
-                result = capture(text, settings)
+                result = capture(text, settings, project=str(project) if project else None)
         except CaptureError as exc:
-            await message.answer(f"Problem: {exc}")
+            await message.answer(f"{_L(lang, 'Problem', 'Problem')}: {exc}")
             return
         _clear_flow(message)
         await message.answer(reply_text(result, lang), reply_markup=_menu(lang))
         return
 
-    # --- Guided: awaiting new category -----------------------------------
+    # --- Guided: awaiting project name -------------------------------------
+    if flow and flow.get("step") == "await_project":
+        try:
+            slug = create_project(settings.vault_path, text)
+        except ValueError as exc:
+            await message.answer(f"{_L(lang, 'Problem', 'Problem')}: {exc}")
+            return
+        _clear_flow(message)
+        done = _L(lang, "Created project", "Utworzono projekt")
+        await message.answer(f"{done}: {slug}", reply_markup=_menu(lang))
+        return
+
+    # --- Guided: awaiting new category -------------------------------------
     if flow and flow.get("step") == "await_category":
         parts = text.split(None, 1)
         name = parts[0]
@@ -263,21 +315,21 @@ async def on_text(message: Message) -> None:
         try:
             slug = categories_mod.add(settings.vault_path, name, subs)
         except ValueError as exc:
-            await message.answer(f"Could not add: {exc}")
+            await message.answer(f"{_L(lang, 'Could not add', 'Nie udało się dodać')}: {exc}")
             return
         _clear_flow(message)
-        done = "Added category" if lang == "en" else "Dodano kategorię"
+        done = _L(lang, "Added category", "Dodano kategorię")
         await message.answer(f"{done}: {slug}", reply_markup=_menu(lang))
         return
 
-    # --- Free text: auto-route (AI if possible, else manual) -------------
+    # --- Free text: auto-route ---------------------------------------------
     try:
         result = capture(text, settings)
     except CaptureError:
         try:
             result = capture_manual(text, settings)
         except CaptureError as exc:
-            await message.answer(f"Problem: {exc}")
+            await message.answer(f"{_L(lang, 'Problem', 'Problem')}: {exc}")
             return
     await message.answer(reply_text(result, lang), reply_markup=_menu(lang))
 
