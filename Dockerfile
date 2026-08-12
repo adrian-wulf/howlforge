@@ -13,5 +13,6 @@ ENV HOWLFORGE_LLM_CONFIG=/app/howlforge/llm_config.yaml
 
 VOLUME ["/app/vault"]
 
-ENTRYPOINT ["howlforge"]
-CMD ["doctor"]
+# No ENTRYPOINT so `docker compose` command arrays run directly.
+# Default (`docker run howlforge:test`) runs the CLI's doctor.
+CMD ["howlforge", "doctor"]

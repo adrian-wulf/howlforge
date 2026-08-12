@@ -49,6 +49,9 @@ howlforge-bot = "howlforge.bot:main"
 [tool.setuptools.packages.find]
 include = ["howlforge*"]
 
+[tool.setuptools.package-data]
+howlforge = ["prompts/*.j2", "templates/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

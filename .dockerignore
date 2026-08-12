@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets
+.env
+
+# Data / vault (kept on the host, not in the image)
+vault/
+!vault_template/
+
+# VCS / OS
+.git/
+.gitignore
+.DS_Store
+.idea/
+.vscode/
+
+# Docs that are fine to include
+# (README.md is copied explicitly in Dockerfile)

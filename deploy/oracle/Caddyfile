@@ -1,0 +1,11 @@
+# Caddy reverse proxy for HowlForge - enables automatic HTTPS.
+#
+# Set your domain in the environment when starting the `https` profile:
+#   HOWLFORGE_DOMAIN=howl.example.com docker compose --profile https up -d
+#
+# Without a domain, leave it as-is and Caddy will only bind locally.
+
+{$HOWLFORGE_DOMAIN:howl.example.com} {
+    encode zstd gzip
+    reverse_proxy api:8000
+}

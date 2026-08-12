@@ -1,0 +1,61 @@
+# Production Docker Compose for a small VPS (e.g. Oracle Cloud ARM free tier).
+#
+#   - api   : web panel + JSON API (uvicorn), exposed on 0.0.0.0:8000
+#   - bot   : Telegram bot (polling) - only starts if TELEGRAM_BOT_TOKEN is set
+#   - caddy : optional reverse proxy with automatic HTTPS (needs a domain)
+#
+# Usage:
+#   docker compose -f deploy/oracle/docker-compose.prod.yml up -d --build
+#
+# The vault lives in a named volume and persists across restarts.
+
+services:
+  api:
+    build: { context: ../.., dockerfile: Dockerfile }
+    image: howlforge:prod
+    container_name: howlforge-api
+    env_file: ../../.env
+    command: ["uvicorn", "howlforge.server:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - howlforge_vault:/app/vault
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    # Uncomment to expose the panel directly on port 80 (no HTTPS).
+    # ports:
+    #   - "80:8000"
+
+  bot:
+    build: { context: ../.., dockerfile: Dockerfile }
+    image: howlforge:prod
+    container_name: howlforge-bot
+    env_file: ../../.env
+    command: ["howlforge-bot"]
+    depends_on:
+      - api
+    volumes:
+      - howlforge_vault:/app/vault
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: howlforge-caddy
+    restart: unless-stopped
+    profiles: ["https"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  howlforge_vault:
+  caddy_data:
+  caddy_config:

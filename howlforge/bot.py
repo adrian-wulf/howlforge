@@ -103,11 +103,15 @@ async def on_text(message: Message) -> None:
 
 
 async def main() -> None:
+    import asyncio
+
     settings = get_settings()
     if not settings.telegram_bot_token:
-        raise SystemExit(
-            "TELEGRAM_BOT_TOKEN is not set. Add it to .env and re-run."
-        )
+        # No token configured: keep the container alive without polling instead of
+        # crash-looping under `restart: unless-stopped` in production.
+        logger.warning("TELEGRAM_BOT_TOKEN is not set. Bot is idle (no polling).")
+        while True:
+            await asyncio.sleep(3600)
     bot = Bot(settings.telegram_bot_token, parse_mode=ParseMode.MARKDOWN)
     dp = Dispatcher()
     dp.include_router(router)
