@@ -12,6 +12,11 @@ model_list:
     litellm_params:
       model: nvidia_nim/meta/llama-3.1-8b-instruct
       api_key: os.environ/NVIDIA_API_KEY
+  # Faster (smaller) option; uncomment to make it the primary classification model.
+  # - model_name: howl-classify
+  #   litellm_params:
+  #     model: nvidia_nim/meta/llama-3.2-3b-instruct
+  #     api_key: os.environ/NVIDIA_API_KEY
   - model_name: howl-classify
     litellm_params:
       model: anthropic/claude-sonnet-4-5

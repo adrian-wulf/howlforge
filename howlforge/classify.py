@@ -143,7 +143,7 @@ def classify(
     if not raw_text.strip():
         raise ClassifyError("Cannot classify empty text.")
     messages = build_messages(raw_text, lang, categories)
-    output = client.complete(messages, model=model)
+    output = client.complete(messages, model=model, max_tokens=1024)
     data = _extract_json(output)
     note = data_to_note(data, lang, categories)
     errors = note.validate(categories)
