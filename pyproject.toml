@@ -29,6 +29,9 @@ dependencies = [
     "jinja2>=3.1",
     "python-frontmatter>=1.1",
     "python-dotenv>=1.0",
+    "aiogram>=3.4",
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +43,7 @@ dev = [
 
 [project.scripts]
 howlforge = "howlforge.cli:main"
+howlforge-bot = "howlforge.bot:main"
 
 [tool.setuptools.packages.find]
 include = ["howlforge*"]

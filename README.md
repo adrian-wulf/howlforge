@@ -38,6 +38,25 @@ howlforge doctor         # check config + LLM model list
 howlforge add "Idle farming where crops evolve into monsters at night"
 ```
 
+### Telegram bot (capture from your phone)
+
+Set `TELEGRAM_BOT_TOKEN` (and optionally `TELEGRAM_CHAT_ID`) in `.env`, then:
+
+```bash
+howlforge-bot            # polling mode
+```
+
+Send any message to the bot; it classifies, saves to the vault and replies.
+
+### HTTP API
+
+```bash
+uvicorn howlforge.server:app --host 0.0.0.0 --port 8000
+curl -X POST localhost:8000/api/capture -H 'content-type: application/json' \
+     -d '{"text": "co-op roguelike about a wolf pack"}'
+# GET /health
+```
+
 Open the vault folder in Obsidian and filter notes with Dataview:
 
 ```dataview
@@ -50,7 +69,7 @@ WHERE status = "raw" AND project = "cowboy-farm"
 
 - [x] Vault schema + controlled vocabulary + PL/EN i18n
 - [x] Classification prompt + LiteLLM integration + CLI
-- [ ] Telegram bot (capture) + FastAPI
+- [x] Telegram bot (capture) + FastAPI (HTTP capture endpoint)
 - [ ] Nightly AI synthesis into project pages / MOC (append-only)
 - [ ] Lightweight web panel (list / filter / edit)
 - [ ] Semantic search (sqlite-vec)

@@ -1,0 +1,72 @@
+from pathlib import Path
+
+import pytest
+
+from howlforge.capture import CaptureError, capture, reply_text
+from howlforge.config import Settings
+
+
+class FakeClient:
+    available_models = ["howl-classify"]
+
+    def __init__(self, output: str):
+        self.output = output
+
+    def complete(self, messages, model=None):
+        return self.output
+
+
+def _settings(tmp_path: Path) -> Settings:
+    return Settings(
+        language="pl",
+        vault_path=tmp_path,
+        llm_model="howl-classify",
+    )
+
+
+def test_capture_saves_note(tmp_path):
+    client = FakeClient(
+        '{"type": "idea", "category": "gameplay", "subcategory": "loop", '
+        '"status": "raw", "priority": "medium", "tags": ["farming"], '
+        '"related": [], "title": "Night monsters", '
+        '"summary": "Crops become monsters at night."}'
+    )
+    settings = _settings(tmp_path)
+    result = capture("Crops become monsters at night", settings, client)
+    assert result.ok
+    assert result.note.title == "night-monsters"
+    assert result.note.language == "pl"
+    assert result.path.exists()
+
+
+def test_capture_empty_raises(tmp_path):
+    with pytest.raises(CaptureError):
+        capture("   ", _settings(tmp_path), FakeClient("{}"))
+
+
+def test_reply_text_pl(tmp_path):
+    result = capture(
+        "an idea",
+        _settings(tmp_path),
+        FakeClient(
+            '{"type": "idea", "category": "misc", "status": "raw", '
+            '"title": "x", "summary": "y"}'
+        ),
+    )
+    reply = reply_text(result, "pl")
+    assert "Zapisano" in reply
+    assert "Trafiło do" in reply
+
+
+def test_reply_text_en(tmp_path):
+    result = capture(
+        "an idea",
+        _settings(tmp_path),
+        FakeClient(
+            '{"type": "idea", "category": "misc", "status": "raw", '
+            '"title": "x", "summary": "y"}'
+        ),
+    )
+    reply = reply_text(result, "en")
+    assert "Saved" in reply
+    assert "Filed under" in reply
