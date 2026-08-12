@@ -12,7 +12,7 @@ class FakeClient:
     def __init__(self, output: str):
         self.output = output
 
-    def complete(self, messages, model=None):
+    def complete(self, messages, model=None, **kwargs):
         return self.output
 
 
