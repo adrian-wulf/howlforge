@@ -18,8 +18,10 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
+from . import categories as categories_mod
 from .capture import CaptureError, capture, capture_manual
 from .config import get_settings
+from .i18n import ui_strings
 from .schema import Note
 from .vault import create_project, list_notes, list_projects, read_note, update_note
 
@@ -90,16 +92,18 @@ def panel(request: Request) -> Response:
     from . import vocabulary
 
     projects = list_projects(settings.vault_path)
+    ui = ui_strings(settings.language)
     return _templates.TemplateResponse(
         request,
         "index.html",
         {
             "request": request,
+            "ui": ui,
             "notes": rows,
             "projects": projects,
             "statuses": vocabulary.STATUSES,
             "priorities": vocabulary.PRIORITIES,
-            "categories": list(vocabulary.CATEGORIES),
+            "categories": list(categories_mod.all_categories(settings.vault_path)),
         },
     )
 
@@ -155,17 +159,19 @@ def panel_note(request: Request, note_path: str) -> Response:
         note = read_note(settings.vault_path, note_path)
     except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    ui = ui_strings(settings.language)
     return _templates.TemplateResponse(
         request,
         "note.html",
         {
             "request": request,
+            "ui": ui,
             "note_path": note_path,
             "note": note,
             "projects": list_projects(settings.vault_path),
             "statuses": vocabulary.STATUSES,
             "priorities": vocabulary.PRIORITIES,
-            "categories": list(vocabulary.CATEGORIES),
+            "categories": list(categories_mod.all_categories(settings.vault_path)),
         },
     )
 
@@ -184,11 +190,13 @@ def panel_project(request: Request, slug: str) -> Response:
             rows.append(_summarize(note, settings.vault_path, p))
     by_status = Counter(r["status"] for r in rows)
     by_category = Counter(r["category"] for r in rows)
+    ui = ui_strings(settings.language)
     return _templates.TemplateResponse(
         request,
         "project.html",
         {
             "request": request,
+            "ui": ui,
             "slug": slug,
             "notes": sorted(rows, key=lambda r: r["created"], reverse=True),
             "by_status": dict(by_status),
@@ -271,6 +279,27 @@ def api_create_project(req: ProjectCreate) -> Dict[str, object]:
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"name": req.name, "slug": slug}
+
+
+@app.get("/api/categories")
+def api_categories() -> Dict[str, object]:
+    settings = get_settings()
+    return categories_mod.all_categories(settings.vault_path)
+
+
+class CategoryCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    subcategories: List[str] = Field(default_factory=list)
+
+
+@app.post("/api/categories")
+def api_create_category(req: CategoryCreate) -> Dict[str, object]:
+    settings = get_settings()
+    try:
+        slug = categories_mod.add(settings.vault_path, req.name, req.subcategories)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"name": req.name, "slug": slug, "subcategories": req.subcategories}
 
 
 @app.post("/api/capture", response_model=CaptureResponse)

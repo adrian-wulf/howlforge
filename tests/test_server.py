@@ -111,6 +111,22 @@ def test_projects_list_and_create(client, tmp_path):
     assert (tmp_path / "10 Projects" / "cowboy-farm").is_dir()
 
 
+def test_api_categories_create_and_list(client, tmp_path):
+    r = client.post(
+        "/api/categories", json={"name": "Narrative", "subcategories": ["Plot", "Dialogue"]}
+    )
+    assert r.status_code == 200
+    assert r.json()["slug"] == "narrative"
+    cats = client.get("/api/categories").json()
+    assert "art" in cats
+    assert cats["narrative"] == ["plot", "dialogue"]
+
+
+def test_api_categories_duplicate_422(client):
+    r = client.post("/api/categories", json={"name": "Art"})
+    assert r.status_code == 422
+
+
 def test_patch_project_moves_note(client, tmp_path):
     # a "mechanic" without a project sits in the generic Mechanics folder
     write_note(Note(title="Wolf A", status="raw", type="mechanic"), tmp_path)

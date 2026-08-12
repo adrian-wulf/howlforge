@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Edit · HowlForge</title>
+  <title>HowlForge</title>
   <style>
     :root { --bg:#16181d; --panel:#1e2128; --border:#2b2f38; --text:#e6e8eb;
             --muted:#9aa0aa; --accent:#d97757; }
@@ -33,7 +33,7 @@
 </head>
 <body>
   <header>
-    <a href="/panel">← Back</a>
+    <a href="/panel">{{ ui.back }}</a>
     <span style="margin-left:auto">{{ note.title }}</span>
   </header>
   <main>
@@ -41,35 +41,35 @@
     <form id="editform">
       <div class="grid">
         <div>
-          <label>Title</label>
+          <label>{{ ui.title }}</label>
           <input type="text" name="title" value="{{ note.title }}">
-          <label>Project</label>
+          <label>{{ ui.col_project }}</label>
           <select name="project">
-            <option value="">— none —</option>
+            <option value="">— {{ ui.none }} —</option>
             {% for p in projects %}<option value="{{ p }}" {% if p == note.project %}selected{% endif %}>{{ p }}</option>{% endfor %}
           </select>
         </div>
         <div>
-          <label>Status</label>
+          <label>{{ ui.col_status }}</label>
           <select name="status">
             {% for s in statuses %}<option value="{{ s }}" {% if s == note.status %}selected{% endif %}>{{ s }}</option>{% endfor %}
           </select>
-          <label>Priority</label>
+          <label>{{ ui.col_priority }}</label>
           <select name="priority">
             {% for pr in priorities %}<option value="{{ pr }}" {% if pr == note.priority %}selected{% endif %}>{{ pr }}</option>{% endfor %}
           </select>
-          <label>Category</label>
+          <label>{{ ui.col_category }}</label>
           <select name="category">
             {% for c in categories %}<option value="{{ c }}" {% if c == note.category %}selected{% endif %}>{{ c }}</option>{% endfor %}
           </select>
         </div>
       </div>
-      <label>Body (Markdown)</label>
+      <label>{{ ui.body }}</label>
       <textarea name="body">{{ note.body }}</textarea>
-      <div class="meta">File: <code>{{ note_path }}</code></div>
+      <div class="meta">{{ ui.file }}: <code>{{ note_path }}</code></div>
       <div class="actions">
-        <button type="submit">Save</button>
-        <button type="button" class="ghost" onclick="history.back()">Cancel</button>
+        <button type="submit">{{ ui.save }}</button>
+        <button type="button" class="ghost" onclick="history.back()">{{ ui.cancel }}</button>
       </div>
     </form>
   </main>
@@ -86,9 +86,9 @@
         const r = await fetch('/api/notes/'+encodeURIComponent(path), {
           method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
         if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail||('HTTP '+r.status)); }
-        flash.className='flash ok'; flash.textContent='Saved OK';
+        flash.className='flash ok'; flash.textContent='{{ ui.saved }}';
         setTimeout(()=>location.reload(), 400);
-      } catch(err){ flash.className='flash err'; flash.textContent='Failed: '+err.message; }
+      } catch(err){ flash.className='flash err'; flash.textContent='{{ ui.failed }}: '+err.message; }
     });
   </script>
 </body>

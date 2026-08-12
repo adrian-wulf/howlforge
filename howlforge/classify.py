@@ -28,29 +28,36 @@ class ClassifyError(RuntimeError):
     """Raised when the LLM output cannot be turned into a valid note."""
 
 
-def _build_context(lang: str) -> Dict[str, str]:
-    cats = ", ".join(
-        f"{cat}({', '.join(subs)})" for cat, subs in vocabulary.CATEGORIES.items()
-    )
+def _build_context(lang: str, categories: Optional[Dict[str, List[str]]] = None) -> Dict[str, str]:
+    cats = categories or vocabulary.CATEGORIES
+    rendered = ", ".join(f"{cat}({', '.join(subs)})" for cat, subs in cats.items())
     return {
         "types": ", ".join(vocabulary.NOTE_TYPES),
         "statuses": ", ".join(vocabulary.STATUSES),
         "priorities": ", ".join(vocabulary.PRIORITIES),
-        "categories": cats,
+        "categories": rendered,
         "language": "English" if lang == "en" else "polski",
         "raw_text": "",
     }
 
 
-def build_prompt(raw_text: str, lang: str) -> str:
+def build_prompt(
+    raw_text: str,
+    lang: str,
+    categories: Optional[Dict[str, List[str]]] = None,
+) -> str:
     lang = normalize_lang(lang)
     template = _PROMPTS.get_template(f"classify_{lang}.j2")
-    ctx = _build_context(lang)
+    ctx = _build_context(lang, categories)
     ctx["raw_text"] = raw_text
     return template.render(**ctx)
 
 
-def build_messages(raw_text: str, lang: str) -> List[Dict[str, str]]:
+def build_messages(
+    raw_text: str,
+    lang: str,
+    categories: Optional[Dict[str, List[str]]] = None,
+) -> List[Dict[str, str]]:
     lang = normalize_lang(lang)
     system = (
         "You are a precise JSON-only assistant. Never wrap output in code fences."
@@ -62,7 +69,7 @@ def build_messages(raw_text: str, lang: str) -> List[Dict[str, str]]:
     )
     return [
         {"role": "system", "content": system},
-        {"role": "user", "content": build_prompt(raw_text, lang)},
+        {"role": "user", "content": build_prompt(raw_text, lang, categories)},
     ]
 
 
@@ -92,17 +99,20 @@ def _slugify(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]+", "-", value.strip()).strip("-").lower()
 
 
-def data_to_note(data: Dict[str, Any], lang: str) -> Note:
+def data_to_note(
+    data: Dict[str, Any],
+    lang: str,
+    categories: Optional[Dict[str, List[str]]] = None,
+) -> Note:
     """Map validated LLM JSON onto a Note, coercing bad enums to safe defaults."""
     lang = normalize_lang(lang)
+    cats = categories or vocabulary.CATEGORIES
     note = Note()
 
     note.type = data.get("type") if data.get("type") in vocabulary.NOTE_TYPES else "idea"
-    note.category = (
-        data.get("category") if data.get("category") in vocabulary.CATEGORIES else "misc"
-    )
+    note.category = data.get("category") if data.get("category") in cats else "misc"
     sub = data.get("subcategory", "none")
-    note.subcategory = sub if sub in vocabulary.CATEGORIES[note.category] else "none"
+    note.subcategory = sub if sub in cats.get(note.category, []) else "none"
     note.status = (
         data.get("status") if data.get("status") in vocabulary.STATUSES else "raw"
     )
@@ -127,15 +137,16 @@ def classify(
     client: LLMClient,
     lang: str,
     model: Optional[str] = None,
+    categories: Optional[Dict[str, List[str]]] = None,
 ) -> Note:
     """Classify raw text into a validated Note using the given LLM client."""
     if not raw_text.strip():
         raise ClassifyError("Cannot classify empty text.")
-    messages = build_messages(raw_text, lang)
+    messages = build_messages(raw_text, lang, categories)
     output = client.complete(messages, model=model)
     data = _extract_json(output)
-    note = data_to_note(data, lang)
-    errors = note.validate()
+    note = data_to_note(data, lang, categories)
+    errors = note.validate(categories)
     if errors:
         logger.warning("Note validated with corrections: %s", errors)
     return note

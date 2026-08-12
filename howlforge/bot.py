@@ -65,6 +65,29 @@ async def on_lang(message: Message) -> None:
     await message.answer(f"Language: {lang}")
 
 
+@router.message(Command("newcat"))
+async def on_newcat(message: Message) -> None:
+    """Add a new category: /newcat name sub1,sub2,..."""
+    from . import categories as categories_mod
+
+    settings = get_settings()
+    text = (message.text or "").removeprefix("/newcat").strip()
+    if not text:
+        await message.answer("Usage: /newcat CategoryName sub1,sub2")
+        return
+    parts = text.split(None, 1)
+    name = parts[0]
+    subs = parts[1].split(",") if len(parts) > 1 else []
+    try:
+        slug = categories_mod.add(settings.vault_path, name, subs)
+    except ValueError as exc:
+        await message.answer(f"Could not add category: {exc}")
+        return
+    lang = settings.language
+    done = "Added category" if lang == "en" else "Dodano kategorię"
+    await message.answer(f"{done}: {slug}")
+
+
 @router.message(F.text)
 async def on_text(message: Message) -> None:
     settings = get_settings()

@@ -1,0 +1,60 @@
+import pytest
+
+from howlforge import categories as categories_mod
+from howlforge.capture import capture_manual
+from howlforge.config import Settings
+
+
+def test_add_and_load(tmp_path):
+    categories_mod.add(tmp_path, "Narrative Design", ["Plot", "Dialogue"])
+    custom = categories_mod.load(tmp_path)
+    assert custom == {"narrative-design": ["plot", "dialogue"]}
+
+
+def test_duplicate_builtin_raises(tmp_path):
+    with pytest.raises(ValueError):
+        categories_mod.add(tmp_path, "Art")
+
+
+def test_duplicate_custom_raises(tmp_path):
+    categories_mod.add(tmp_path, "Narrative")
+    with pytest.raises(ValueError):
+        categories_mod.add(tmp_path, "Narrative")
+
+
+def test_empty_name_raises(tmp_path):
+    with pytest.raises(ValueError):
+        categories_mod.add(tmp_path, "  ")
+
+
+def test_all_categories_merges(tmp_path):
+    categories_mod.add(tmp_path, "Narrative")
+    cats = categories_mod.all_categories(tmp_path)
+    assert "art" in cats
+    assert "narrative" in cats
+
+
+def test_capture_manual_with_custom_category(tmp_path):
+    categories_mod.add(tmp_path, "Narrative", ["Plot"])
+    settings = Settings(language="pl", vault_path=tmp_path)
+    result = capture_manual(
+        "A branching plot idea",
+        settings,
+        category="narrative",
+        subcategory="plot",
+    )
+    assert result.ok
+    assert result.note.category == "narrative"
+
+
+def test_capture_manual_custom_unknown_subcategory_raises(tmp_path):
+    categories_mod.add(tmp_path, "Narrative", ["Plot"])
+    settings = Settings(language="pl", vault_path=tmp_path)
+    with pytest.raises(Exception):
+        capture_manual("x", settings, category="narrative", subcategory="music")
+
+
+def test_capture_manual_builtin_unknown_raises(tmp_path):
+    settings = Settings(language="pl", vault_path=tmp_path)
+    with pytest.raises(Exception):
+        capture_manual("x", settings, category="nope")

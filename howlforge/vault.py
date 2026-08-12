@@ -158,7 +158,9 @@ def update_note(
         note.priority = priority
     if title is not None:
         note.title = title.strip() or note.title
-    if category is not None and category in _categories():
+    from . import categories as categories_mod
+
+    if category is not None and category in categories_mod.all_categories(root):
         note.category = category
     if subcategory is not None:
         note.subcategory = subcategory
@@ -192,12 +194,6 @@ def _priority_valid(value: str) -> bool:
     from . import vocabulary
 
     return vocabulary.is_valid_priority(value)
-
-
-def _categories():
-    from . import vocabulary
-
-    return vocabulary.CATEGORIES
 
 
 def _now_iso() -> str:

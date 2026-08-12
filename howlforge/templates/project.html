@@ -38,13 +38,13 @@
 </head>
 <body>
   <header>
-    <a href="/panel">← Back</a>
+    <a href="/panel">{{ ui.back }}</a>
     <h1 style="margin-left:8px">{{ slug }}</h1>
-    <span class="muted" style="margin-left:auto">{{ total }} notes</span>
+    <span class="muted" style="margin-left:auto">{{ total }} {{ ui.stats }}</span>
   </header>
   <main>
     <div class="stats">
-      <div class="stat"><div class="n">{{ total }}</div><div class="l">Notes</div></div>
+      <div class="stat"><div class="n">{{ total }}</div><div class="l">{{ ui.notes }}</div></div>
       {% for s in statuses %}{% if by_status.get(s) %}
       <div class="stat"><div class="n">{{ by_status[s] }}</div><div class="l">{{ s }}</div></div>
       {% endif %}{% endfor %}
@@ -52,29 +52,29 @@
 
     <div class="cols">
       <div class="card">
-        <h3>By status</h3>
+        <h3>{{ ui.by_status }}</h3>
         {% if by_status %}
         {% for s, n in by_status.items() %}
         <div class="bar"><span class="key">{{ s }}</span>
           <span class="fill" style="width:{{ (n/total*100)|round|int }}%"></span>
           <span class="val">{{ n }}</span></div>
         {% endfor %}
-        {% else %}<div class="muted">No notes yet.</div>{% endif %}
+        {% else %}<div class="muted">{{ ui.no_notes_yet }}</div>{% endif %}
       </div>
       <div class="card">
-        <h3>By category</h3>
+        <h3>{{ ui.by_category }}</h3>
         {% if by_category %}
         {% for c, n in by_category.items() %}
         <div class="bar"><span class="key">{{ c }}</span>
           <span class="fill" style="width:{{ (n/total*100)|round|int }}%"></span>
           <span class="val">{{ n }}</span></div>
         {% endfor %}
-        {% else %}<div class="muted">No notes yet.</div>{% endif %}
+        {% else %}<div class="muted">{{ ui.no_notes_yet }}</div>{% endif %}
       </div>
     </div>
 
     <div class="card">
-      <h3>Notes</h3>
+      <h3>{{ ui.notes }}</h3>
       {% if notes %}
       {% for n in notes %}
       <div class="note">
@@ -83,7 +83,7 @@
       </div>
       {% endfor %}
       {% else %}
-      <div class="empty">No notes assigned to this project.</div>
+      <div class="empty">{{ ui.no_notes_project }}</div>
       {% endif %}
     </div>
   </main>

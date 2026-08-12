@@ -47,6 +47,7 @@ howlforge-bot            # polling mode
 ```
 
 Send any message to the bot; it classifies, saves to the vault and replies.
+Commands: `/help`, `/lang`, and `/newcat Name sub1,sub2` to add a category.
 
 ### HTTP API
 
@@ -69,6 +70,9 @@ uvicorn howlforge.server:app --host 0.0.0.0 --port 8000
 
 - Add an idea (assign to a project, category, priority, status) - saved directly.
 - Create projects and assign/reassign notes to them.
+- **Add your own note categories** (with subcategories) from the panel - they are
+  saved to `<vault>/.howlforge/categories.json` and merged with the built-ins for
+  classification and validation.
 - Click a note title to open a **full editor** (frontmatter + Markdown body) at
   `/panel/note/<path>`.
 - Per-project **dashboard** with stats at `/panel/project/<slug>`.

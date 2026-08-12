@@ -65,7 +65,7 @@
 <body>
   <header>
     <h1>HowlForge</h1>
-    <span class="muted" style="margin-left:auto">{{ notes|length }} notes</span>
+    <span class="muted" style="margin-left:auto">{{ notes|length }} {{ ui.notes_count }}</span>
   </header>
   <main>
     <div id="flash" class="flash"></div>
@@ -75,12 +75,12 @@
     </div>
 
     <section class="card addcard">
-      <h2>Add an idea</h2>
+      <h2>{{ ui.add_idea }}</h2>
       <form id="addform">
-        <textarea name="text" rows="2" placeholder="Jot down an idea..." required></textarea>
+        <textarea name="text" rows="2" placeholder="{{ ui.add_idea_hint }}" required></textarea>
         <div class="addrow">
           <select name="project">
-            <option value="">— no project —</option>
+            <option value="">— {{ ui.no_project }} —</option>
             {% for p in projects %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
           </select>
           <select name="category">
@@ -92,39 +92,48 @@
           <select name="status">
             {% for s in statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
           </select>
-          <button type="submit">Save</button>
+          <button type="submit">{{ ui.save }}</button>
         </div>
       </form>
     </section>
 
     <section class="card">
-      <h2>New project</h2>
+      <h2>{{ ui.new_project }}</h2>
       <form id="projform" class="addrow">
-        <input name="name" placeholder="Project name, e.g. Cowboy Farm" required>
-        <button type="submit">Create</button>
+        <input name="name" placeholder="{{ ui.project_name_hint }}" required>
+        <button type="submit">{{ ui.create }}</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>{{ ui.new_category }}</h2>
+      <form id="catform" class="addrow">
+        <input name="name" placeholder="{{ ui.category_name_hint }}" required>
+        <input name="subs" placeholder="{{ ui.subcategories_hint }}" style="flex:1">
+        <button type="submit">{{ ui.add }}</button>
       </form>
     </section>
 
     <form class="filters" method="get" action="/panel">
       <select name="project">
-        <option value="">all projects</option>
+        <option value="">{{ ui.all_projects }}</option>
         {% for p in projects %}
         <option value="{{ p }}">{{ p }}</option>
         {% endfor %}
       </select>
       <select name="status">
-        <option value="">all statuses</option>
+        <option value="">{{ ui.all_statuses }}</option>
         {% for s in statuses %}
         <option value="{{ s }}">{{ s }}</option>
         {% endfor %}
       </select>
       <select name="category">
-        <option value="">all categories</option>
+        <option value="">{{ ui.all_categories }}</option>
         {% for c in categories %}
         <option value="{{ c }}">{{ c }}</option>
         {% endfor %}
       </select>
-      <button type="submit">Filter</button>
+      <button type="submit">{{ ui.filter }}</button>
     </form>
 
     {% if notes %}
@@ -132,11 +141,11 @@
       <table class="notes">
         <thead>
           <tr>
-            <th>Note</th>
-            <th>Project</th>
-            <th>Category</th>
-            <th>Priority</th>
-            <th>Status</th>
+            <th>{{ ui.col_note }}</th>
+            <th>{{ ui.col_project }}</th>
+            <th>{{ ui.col_category }}</th>
+            <th>{{ ui.col_priority }}</th>
+            <th>{{ ui.col_status }}</th>
           </tr>
         </thead>
         <tbody>
@@ -151,7 +160,7 @@
             </td>
             <td>
               <select class="project" data-path="{{ n.path }}" data-field="project">
-                <option value="">— none —</option>
+                <option value="">— {{ ui.none }} —</option>
                 {% for p in projects %}
                 <option value="{{ p }}" {% if p == n.project %}selected{% endif %}>{{ p }}</option>
                 {% endfor %}
@@ -178,7 +187,7 @@
       </table>
     </div>
     {% else %}
-    <div class="empty">No notes match these filters.</div>
+    <div class="empty">{{ ui.empty }}</div>
     {% endif %}
   </main>
 
@@ -198,10 +207,10 @@
           headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
         if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail||('HTTP '+r.status)); }
         const d = await r.json();
-        show('ok','Saved "'+d.title+'"');
+        show('ok','{{ ui.saved }} "'+d.title+'"');
         e.target.reset();
         setTimeout(()=>location.reload(), 500);
-      } catch(err){ show('err','Failed: '+err.message); }
+      } catch(err){ show('err','{{ ui.failed }}: '+err.message); }
     });
 
     document.getElementById('projform').addEventListener('submit', async (e)=>{
@@ -212,10 +221,25 @@
           headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: fd.get('name')}) });
         if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail||('HTTP '+r.status)); }
         const d = await r.json();
-        show('ok','Project "'+d.name+'" created');
+        show('ok','"'+d.name+'" {{ ui.created }}');
         e.target.reset();
         setTimeout(()=>location.reload(), 500);
-      } catch(err){ show('err','Failed: '+err.message); }
+      } catch(err){ show('err','{{ ui.failed }}: '+err.message); }
+    });
+
+    document.getElementById('catform').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const subs = (fd.get('subs')||'').split(',').map(s=>s.trim()).filter(Boolean);
+      try {
+        const r = await fetch('/api/categories', { method:'POST',
+          headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: fd.get('name'), subcategories: subs}) });
+        if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail||('HTTP '+r.status)); }
+        const d = await r.json();
+        show('ok','{{ ui.created }}: "'+d.slug+'"');
+        e.target.reset();
+        setTimeout(()=>location.reload(), 500);
+      } catch(err){ show('err','{{ ui.failed }}: '+err.message); }
     });
 
     document.querySelectorAll('select[data-field]').forEach(sel=>{
@@ -226,9 +250,9 @@
             method:'PATCH', headers:{'Content-Type':'application/json'},
             body: JSON.stringify(body) });
           if (!r.ok) throw new Error('HTTP '+r.status);
-          show('ok','Updated ' + sel.dataset.field + ' -> ' + (sel.value||'none'));
+          show('ok','{{ ui.updated }} ' + sel.dataset.field + ' -> ' + (sel.value||'{{ ui.none }}'));
           if (sel.dataset.field === 'project') setTimeout(()=>location.reload(), 600);
-        } catch(e){ show('err','Update failed: '+e.message); }
+        } catch(e){ show('err','{{ ui.failed }}: '+e.message); }
       });
     });
   </script>

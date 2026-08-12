@@ -56,14 +56,19 @@ class Note:
         "updated",
     ]
 
-    def validate(self) -> List[str]:
-        """Return a list of human-readable errors; empty means valid."""
+    def validate(self, categories: Optional[Dict[str, List[str]]] = None) -> List[str]:
+        """Return a list of human-readable errors; empty means valid.
+
+        ``categories`` is the merged category map (defaults + custom). When omitted
+        only the built-in vocabulary is used.
+        """
+        cats = categories or vocabulary.CATEGORIES
         errors: List[str] = []
         if not vocabulary.is_valid_type(self.type):
             errors.append(f"type: '{self.type}' is not allowed")
-        if not vocabulary.is_valid_category(self.category):
+        if self.category not in cats:
             errors.append(f"category: '{self.category}' is not allowed")
-        if not vocabulary.is_valid_subcategory(self.category, self.subcategory):
+        if self.subcategory not in cats.get(self.category, []):
             errors.append(
                 f"subcategory '{self.subcategory}' is not allowed for category '{self.category}'"
             )

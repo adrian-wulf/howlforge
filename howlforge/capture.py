@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from . import categories as categories_mod
 from .classify import ClassifyError, classify
 from .config import Settings
 from .i18n import normalize_lang
@@ -72,7 +73,8 @@ def capture_manual(
         source="manual",
         language=normalize_lang(settings.language),
     )
-    errors = note.validate()
+    cats = categories_mod.all_categories(settings.vault_path)
+    errors = note.validate(cats)
     if errors:
         raise CaptureError("; ".join(errors))
     path = write_note(note, settings.vault_path)
@@ -88,8 +90,9 @@ def capture(text: str, settings: Settings, client: LLMClient | None = None) -> C
         raise CaptureError("Empty capture text.")
     client = client or LLMClient(settings.llm_config, settings.llm_model)
     lang = normalize_lang(settings.language)
+    cats = categories_mod.all_categories(settings.vault_path)
     try:
-        note = classify(text, client, lang)
+        note = classify(text, client, lang, categories=cats)
     except (LLMError, ClassifyError) as exc:
         raise CaptureError(str(exc)) from exc
     path = write_note(note, settings.vault_path)
