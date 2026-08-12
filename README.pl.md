@@ -4,7 +4,7 @@
 > AI go sklasyfikować i zobacz, jak trafia do zorganizowanego Markdown vaulta, który
 > jest w 100% Twój. Open-source, niezależny od providera, działa za **$0** od startu.
 
-English | [Polski](README.pl.md)
+[English](README.md) | Polski
 
 ```
 Telegram (łapanie)  ->  AI klasyfikacja (LiteLLM)  ->  Markdown vault (źródło prawdy)
@@ -25,7 +25,7 @@ Telegram (łapanie)  ->  AI klasyfikacja (LiteLLM)  ->  Markdown vault (źródł
   **NVIDIA NIM** (darmowe) i 100+ innych. Domyślny config działa na NVIDIA NIM = **$0**.
 - **Kontrolowane słownictwo**, które możesz rozszerzać: statusy, priorytety oraz
   kategorie/podkategorie pozostają stabilne, więc tabele Dataview się nie psują.
-- **PL / EN** interfejs, odpowiedzi bota i treść notatek AI - jeden ustawieniem.
+- **PL / EN** interfejs, odpowiedzi bota i treść notatek AI - jednym ustawieniem.
 - **Projekty** - twórz projekty i przypisuj do nich pomysły; notatki same się przenoszą.
 - **Panel web** - dodawanie pomysłów, edycja notatek, filtry, dashboardy projektów.
   Działa **bez klucza AI**.
@@ -70,7 +70,7 @@ cp .env.example .env        # opcjonalnie: HOWLFORGE_LANGUAGE, HOWLFORGE_PANEL_P
 pip install -e ".[dev]"
 howlforge init              # utwórz strukturę vaulta
 howlforge doctor            # sprawdź config + listę modeli LLM
-howlforge run               # lub: uvicorn howlforge.server:app --port 8000
+uvicorn howlforge.server:app --port 8000   # lub: make run
 ```
 
 Potem otwórz **http://127.0.0.1:8000/panel**.
@@ -117,8 +117,8 @@ TELEGRAM_CHAT_IDS=123456789,987654321
 Komendy: `/help`, `/lang`, `/newcat Nazwa pod1,pod2`, `/cancel`.
 
 Bot pokazuje klawiaturę: **Dodaj pomysł** (wybierz kategorię, potem napisz notatkę),
-**Nowa kategoria**, **Pomoc**, **Język**. Albo po prostu napisz wiadomość - bot sam
-zdecyduje, co z nią zrobić.
+**Nowa kategoria**, **Pomoc**, **Język**. Albo po prostu napisz wiadomość - bot sam ją
+sklasyfikuje i zapisze.
 
 ### Panel web + API
 
@@ -158,7 +158,7 @@ procesem **działającym cały czas**. Dobre opcje:
 | **Hetzner Cloud** (CX22) | ~EUR 3,79/mies. | Tanio, niezawodnie, łatwa rejestracja kartą. |
 | **Vultr / RackNerd / Scaleway / IONOS** | $2,50-5/mies. | Wystarczy na małe potrzeby. |
 
-Czysty serverless (Netlify / Vercel) **nie** pasuje: efemeryczny dysk + brak długo
+Czysty serverless (Netlify / Vercel) **nie** pasuje: tymczasowy dysk + brak długo
 działającego procesu dla bota polling.
 
 ### Instalacja jednym skryptem (Oracle, Hetzner, dowolny VPS na Ubuntu)
@@ -186,7 +186,7 @@ HOWLFORGE_DOMAIN=howl.example.com docker compose --profile https \
 
 ```bash
 pip install -e ".[dev]"
-pytest                    # 79+ testów
+pytest                    # 87 testów
 ruff check .              # lint
 ```
 

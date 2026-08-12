@@ -70,7 +70,7 @@ cp .env.example .env        # optional: HOWLFORGE_LANGUAGE, HOWLFORGE_PANEL_PASS
 pip install -e ".[dev]"
 howlforge init              # create the vault layout
 howlforge doctor            # check config + LLM model list
-howlforge run               # or: uvicorn howlforge.server:app --port 8000
+uvicorn howlforge.server:app --port 8000   # or: make run
 ```
 
 Then open **http://127.0.0.1:8000/panel**.
@@ -184,7 +184,7 @@ HOWLFORGE_DOMAIN=howl.example.com docker compose --profile https \
 
 ```bash
 pip install -e ".[dev]"
-pytest                    # 79+ tests
+pytest                    # 87 tests
 ruff check .              # lint
 ```
 
