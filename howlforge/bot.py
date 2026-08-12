@@ -281,7 +281,7 @@ async def on_text(message: Message) -> None:
     await message.answer(reply_text(result, lang), reply_markup=_menu(lang))
 
 
-async def main() -> None:
+async def _main() -> None:
     import asyncio
 
     settings = get_settings()
@@ -296,8 +296,13 @@ async def main() -> None:
     await dp.start_polling(bot, skip_updates=True)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Sync entry point for the ``howlforge-bot`` console script."""
     import asyncio
 
     logging.basicConfig(level=logging.INFO)
-    asyncio.run(main())
+    asyncio.run(_main())
+
+
+if __name__ == "__main__":
+    main()
