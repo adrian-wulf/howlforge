@@ -1,5 +1,7 @@
+import pytest
+
 from howlforge.schema import Note
-from howlforge.vault import destination_path, write_note
+from howlforge.vault import destination_path, update_note, write_note
 
 
 def test_note_defaults_roundtrip():
@@ -48,3 +50,20 @@ def test_write_note_never_overwrites(tmp_path):
     p2 = write_note(b, tmp_path)
     assert p1 != p2
     assert p2.name.endswith("-2.md")
+
+
+def test_update_note_changes_status_and_priority(tmp_path):
+    path = write_note(Note(title="Wolf", status="raw", priority="low"), tmp_path)
+    rel = path.relative_to(tmp_path)
+    updated = update_note(tmp_path, str(rel), status="processed", priority="high")
+    assert updated.status == "processed"
+    assert updated.priority == "high"
+    assert "status: processed" in path.read_text(encoding="utf-8")
+
+
+def test_update_note_rejects_invalid_status(tmp_path):
+    path = write_note(Note(title="Wolf", status="raw"), tmp_path)
+    rel = path.relative_to(tmp_path)
+    with pytest.raises(ValueError):
+        update_note(tmp_path, str(rel), status="shipped")
+

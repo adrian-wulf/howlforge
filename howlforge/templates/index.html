@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HowlForge · vault</title>
+  <style>
+    :root { --bg:#16181d; --panel:#1e2128; --border:#2b2f38; --text:#e6e8eb;
+            --muted:#9aa0aa; --accent:#d97757; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+           background:var(--bg); color:var(--text); }
+    header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex;
+             align-items:center; gap:12px; }
+    header h1 { font-size:18px; margin:0; }
+    header .wolf { font-size:20px; }
+    main { padding:24px; max-width:1100px; margin:0 auto; }
+    .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+    select, button { background:var(--panel); color:var(--text); border:1px solid var(--border);
+                     border-radius:8px; padding:8px 12px; font-size:14px; }
+    .table { display:grid; grid-template-columns: 1fr 130px 130px 150px 80px;
+             gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .row-head, .row { display:contents; }
+    .cell { padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
+    .row-head .cell { color:var(--muted); font-size:12px; text-transform:uppercase;
+                      letter-spacing:.04em; background:var(--panel); }
+    .title { font-weight:600; }
+    .muted { color:var(--muted); font-size:12px; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px;
+           border:1px solid var(--border); color:var(--muted); margin-right:4px; }
+    select.status { cursor:pointer; }
+    .status-raw { border-color:#8a6d3b; color:#d9b36b; }
+    .status-processed { border-color:#3b7a8a; color:#7fc3d2; }
+    .status-prototype { border-color:#6b3b8a; color:#c08ad9; }
+    .status-implemented { border-color:#3b8a4d; color:#7fd29b; }
+    .status-rejected { border-color:#8a3b3b; color:#d97f7f; }
+    .status-archived { border-color:#555; color:#999; }
+    .empty { color:var(--muted); padding:24px; text-align:center; }
+    .flash { display:none; padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:14px; }
+    .flash.ok { background:#1d3a26; color:#7fd29b; display:block; }
+    .flash.err { background:#3a1d1d; color:#d97f7f; display:block; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="wolf">🐺</span>
+    <h1>HowlForge</h1>
+    <span class="muted" style="margin-left:auto">{{ notes|length }} notes</span>
+  </header>
+  <main>
+    <div id="flash" class="flash"></div>
+
+    <form class="filters" method="get" action="/panel">
+      <select name="project">
+        <option value="">all projects</option>
+        {% for p in projects %}
+        <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+      <select name="status">
+        <option value="">all statuses</option>
+        {% for s in statuses %}
+        <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+      </select>
+      <select name="category">
+        <option value="">all categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Filter</button>
+    </form>
+
+    {% if notes %}
+    <div class="table">
+      <div class="row-head">
+        <div class="cell">Note</div>
+        <div class="cell">Project</div>
+        <div class="cell">Category</div>
+        <div class="cell">Priority</div>
+        <div class="cell">Status</div>
+      </div>
+      {% for n in notes %}
+      <div class="row">
+        <div class="cell title">
+          {{ n.title }}
+          <div class="muted">
+            {{ n.type }}{% if n.generated %} · <span class="tag">AI</span>{% endif %}
+            {% for t in (n.tags or [])[:3] %}<span class="tag">{{ t }}</span>{% endfor %}
+          </div>
+        </div>
+        <div class="cell muted">{{ n.project or '—' }}</div>
+        <div class="cell">{{ n.category }}{% if n.subcategory and n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %}</div>
+        <div class="cell">
+          <select class="priority" data-path="{{ n.path }}" data-field="priority">
+            {% for pr in priorities %}
+            <option value="{{ pr }}" {% if pr == n.priority %}selected{% endif %}>{{ pr }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="cell">
+          <select class="status status-{{ n.status }}" data-path="{{ n.path }}" data-field="status">
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if s == n.status %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">No notes match these filters.</div>
+    {% endif %}
+  </main>
+
+  <script>
+    const flash = document.getElementById('flash');
+    function show(cls, msg){ flash.className='flash '+cls; flash.textContent=msg;
+      setTimeout(()=>{ flash.className='flash'; }, 2500); }
+    document.querySelectorAll('select[data-field]').forEach(sel=>{
+      sel.addEventListener('change', async ()=>{
+        const body = {}; body[sel.dataset.field] = sel.value;
+        try {
+          const r = await fetch('/api/notes/'+encodeURIComponent(sel.dataset.path), {
+            method:'PATCH', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(body) });
+          if (!r.ok) throw new Error('HTTP '+r.status);
+          show('ok','Updated ' + sel.dataset.field + ' → ' + sel.value);
+        } catch(e){ show('err','Update failed: '+e.message); }
+      });
+    });
+  </script>
+</body>
+</html>

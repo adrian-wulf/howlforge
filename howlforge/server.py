@@ -11,15 +11,20 @@ Run with::
 
 from __future__ import annotations
 
-from typing import Dict
+from pathlib import Path
+from typing import Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 from .capture import CaptureError, capture
 from .config import get_settings
+from .schema import Note
+from .vault import list_notes, update_note
 
 app = FastAPI(title="HowlForge", version="0.1.0")
+_templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 
 class CaptureRequest(BaseModel):
@@ -35,9 +40,109 @@ class CaptureResponse(BaseModel):
     subcategory: str
 
 
+class UpdateRequest(BaseModel):
+    title: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+    body: Optional[str] = None
+
+
+def _summarize(note: Note, vault_root: Path, path: Path) -> Dict[str, object]:
+    return {
+        "path": str(path.relative_to(vault_root)),
+        "title": note.title,
+        "type": note.type,
+        "status": note.status,
+        "priority": note.priority,
+        "category": note.category,
+        "subcategory": note.subcategory,
+        "project": note.project or "",
+        "tags": note.tags,
+        "generated": note.generated,
+        "created": note.created,
+    }
+
+
 @app.get("/health")
 def health() -> Dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/panel")
+def panel(request: Request) -> Response:
+    settings = get_settings()
+    rows = [
+        _summarize(
+            Note.from_markdown(p.read_text(encoding="utf-8")), settings.vault_path, p
+        )
+        for p in list_notes(settings.vault_path)
+    ]
+    from . import vocabulary
+
+    projects = sorted({r["project"] for r in rows if r["project"]})
+    return _templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "request": request,
+            "notes": rows,
+            "projects": projects,
+            "statuses": vocabulary.STATUSES,
+            "priorities": vocabulary.PRIORITIES,
+            "categories": list(vocabulary.CATEGORIES),
+        },
+    )
+
+
+@app.get("/api/notes")
+def api_notes(
+    project: Optional[str] = None,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+) -> List[Dict[str, object]]:
+    settings = get_settings()
+    rows = []
+    for p in list_notes(settings.vault_path):
+        note = Note.from_markdown(p.read_text(encoding="utf-8"))
+        if project and (note.project or "").lower() != project.lower():
+            continue
+        if status and note.status != status:
+            continue
+        if category and note.category != category:
+            continue
+        rows.append(_summarize(note, settings.vault_path, p))
+    rows.sort(key=lambda r: r["created"], reverse=True)
+    return rows
+
+
+@app.patch("/api/notes/{note_path:path}", response_model=CaptureResponse)
+def api_update_note(note_path: str, req: UpdateRequest) -> CaptureResponse:
+    settings = get_settings()
+    try:
+        note = update_note(
+            settings.vault_path,
+            note_path,
+            title=req.title,
+            status=req.status,
+            priority=req.priority,
+            category=req.category,
+            subcategory=req.subcategory,
+            body=req.body,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return CaptureResponse(
+        ok=True,
+        path=note_path,
+        title=note.title,
+        type=note.type,
+        category=note.category,
+        subcategory=note.subcategory,
+    )
 
 
 @app.post("/api/capture", response_model=CaptureResponse)

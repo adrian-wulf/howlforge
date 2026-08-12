@@ -57,6 +57,18 @@ curl -X POST localhost:8000/api/capture -H 'content-type: application/json' \
 # GET /health
 ```
 
+### Web panel
+
+A lightweight, self-hosted dashboard: list, filter and quickly update notes.
+
+```bash
+uvicorn howlforge.server:app --host 0.0.0.0 --port 8000
+# open http://localhost:8000/panel
+```
+
+Also exposes a JSON API: `GET /api/notes?project=&status=&category=`,
+`PATCH /api/notes/{path}` (edit status/priority/etc).
+
 ### Nightly synthesis (append-only)
 
 Turn the last few days of ideas into an actionable digest. Each run writes a fresh
@@ -82,7 +94,7 @@ WHERE status = "raw" AND project = "cowboy-farm"
 - [x] Classification prompt + LiteLLM integration + CLI
 - [x] Telegram bot (capture) + FastAPI (HTTP capture endpoint)
 - [x] Nightly AI synthesis into project pages / MOC (append-only)
-- [ ] Lightweight web panel (list / filter / edit)
+- [x] Lightweight web panel (list / filter / edit)
 - [ ] Semantic search (sqlite-vec)
 - [ ] JSON/CSV export for engine (Unity / Godot / Unreal)
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
+from typing import Optional
 
 from .schema import Note, destination_path
 
@@ -83,3 +84,84 @@ def list_notes(vault_root: Path) -> list[Path]:
         for p in root.rglob("*.md")
         if p.is_file() and ".obsidian" not in p.parts and ".trash" not in p.parts
     )
+
+
+def read_note(vault_root: Path, relative_path: str) -> Note:
+    """Read a single note by its vault-relative path."""
+    root = Path(vault_root).resolve()
+    path = (root / relative_path).resolve()
+    if not path.is_relative_to(root):
+        raise ValueError("Path escapes the vault.")
+    if not path.exists():
+        raise FileNotFoundError(f"No such note: {relative_path}")
+    return Note.from_markdown(path.read_text(encoding="utf-8"))
+
+
+def update_note(
+    vault_root: Path,
+    relative_path: str,
+    *,
+    title: Optional[str] = None,
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    category: Optional[str] = None,
+    subcategory: Optional[str] = None,
+    body: Optional[str] = None,
+) -> Note:
+    """Update select fields of a note in place and return the updated note.
+
+    Only ``status`` and ``priority`` are validated against the vocabulary; the
+    others are applied as-is so free text (title/body) is not restricted.
+    """
+    root = Path(vault_root).resolve()
+    path = (root / relative_path).resolve()
+    if not path.is_relative_to(root):
+        raise ValueError("Path escapes the vault.")
+    if not path.exists():
+        raise FileNotFoundError(f"No such note: {relative_path}")
+
+    note = Note.from_markdown(path.read_text(encoding="utf-8"))
+    if status is not None:
+        if not _status_valid(status):
+            raise ValueError(f"Invalid status: {status}")
+        note.status = status
+    if priority is not None:
+        if not _priority_valid(priority):
+            raise ValueError(f"Invalid priority: {priority}")
+        note.priority = priority
+    if title is not None:
+        note.title = title.strip() or note.title
+    if category is not None and category in _categories():
+        note.category = category
+    if subcategory is not None:
+        note.subcategory = subcategory
+    if body is not None:
+        note.body = body
+    note.updated = _now_iso()
+    path.write_text(note.to_markdown(), encoding="utf-8")
+    logger.info("Updated note -> %s", path)
+    return note
+
+
+def _status_valid(value: str) -> bool:
+    from . import vocabulary
+
+    return vocabulary.is_valid_status(value)
+
+
+def _priority_valid(value: str) -> bool:
+    from . import vocabulary
+
+    return vocabulary.is_valid_priority(value)
+
+
+def _categories():
+    from . import vocabulary
+
+    return vocabulary.CATEGORIES
+
+
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
