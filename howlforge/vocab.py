@@ -34,6 +34,23 @@ _PRIORITY_COLORS: Dict[str, str] = {
     "backlog": "#9aa0aa",
 }
 
+# Simple single-character symbols (plain text, no emoji) for statuses and priorities.
+_STATUS_SYMBOLS: Dict[str, str] = {
+    "raw": "o",
+    "processed": "~",
+    "prototype": "*",
+    "implemented": "V",
+    "rejected": "x",
+    "archived": "-",
+}
+_PRIORITY_SYMBOLS: Dict[str, str] = {
+    "critical": "!!",
+    "high": "!",
+    "medium": "=",
+    "low": "-",
+    "backlog": ".",
+}
+
 
 def _slug(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9]+", "-", value.strip()).strip("-").lower()
@@ -73,6 +90,7 @@ def _builtin_statuses() -> List[dict]:
             "label_en": i18n.status_label(k, "en"),
             "label_pl": i18n.status_label(k, "pl"),
             "color": _STATUS_COLORS.get(k, "#9aa0aa"),
+            "symbol": _STATUS_SYMBOLS.get(k, "o"),
         }
         for k in vocabulary.STATUSES
     ]
@@ -85,6 +103,7 @@ def _builtin_priorities() -> List[dict]:
             "label_en": i18n.priority_label(k, "en"),
             "label_pl": i18n.priority_label(k, "pl"),
             "color": _PRIORITY_COLORS.get(k, "#9aa0aa"),
+            "symbol": _PRIORITY_SYMBOLS.get(k, "o"),
         }
         for k in vocabulary.PRIORITIES
     ]
@@ -134,6 +153,7 @@ def _add(vault_root: Path, kind: str, builtin_keys: List[str], entry: dict) -> s
             "label_en": entry.get("label_en") or key,
             "label_pl": entry.get("label_pl") or key,
             "color": entry.get("color") or "#9aa0aa",
+            "symbol": entry.get("symbol") or "o",
         }
     )
     save(vault_root, data)
@@ -146,12 +166,13 @@ def add_status(
     label_en: Optional[str] = None,
     label_pl: Optional[str] = None,
     color: Optional[str] = None,
+    symbol: Optional[str] = None,
 ) -> str:
     return _add(
         vault_root,
         "statuses",
         vocabulary.STATUSES,
-        {"key": key, "label_en": label_en, "label_pl": label_pl, "color": color},
+        {"key": key, "label_en": label_en, "label_pl": label_pl, "color": color, "symbol": symbol},
     )
 
 
@@ -161,12 +182,13 @@ def add_priority(
     label_en: Optional[str] = None,
     label_pl: Optional[str] = None,
     color: Optional[str] = None,
+    symbol: Optional[str] = None,
 ) -> str:
     return _add(
         vault_root,
         "priorities",
         vocabulary.PRIORITIES,
-        {"key": key, "label_en": label_en, "label_pl": label_pl, "color": color},
+        {"key": key, "label_en": label_en, "label_pl": label_pl, "color": color, "symbol": symbol},
     )
 
 
@@ -198,3 +220,10 @@ def color(key: str, entries: List[dict]) -> str:
         if e["key"] == key:
             return e.get("color") or "#9aa0aa"
     return "#9aa0aa"
+
+
+def symbol(key: str, entries: List[dict]) -> str:
+    for e in entries:
+        if e["key"] == key:
+            return e.get("symbol") or "o"
+    return "o"

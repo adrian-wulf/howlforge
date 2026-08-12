@@ -19,21 +19,22 @@
              border-radius:8px; padding:6px 10px; font-size:13px; }
     .board { display:flex; gap:14px; padding:20px 24px; overflow-x:auto; align-items:flex-start; }
     .col { background:var(--panel); border:1px solid var(--border); border-radius:10px;
-           min-width:230px; max-width:230px; flex:none; }
+           min-width:240px; max-width:240px; flex:none; }
     .colhead { padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px;
-               font-weight:600; display:flex; align-items:center; gap:8px; }
-    .dot { width:10px; height:10px; border-radius:50%; flex:none; }
-    .count { margin-left:auto; color:var(--muted); font-size:12px; }
+               font-weight:600; }
+    .count { color:var(--muted); font-size:12px; float:right; }
     .cards { padding:8px; min-height:40px; }
     .card { background:var(--bg); border:1px solid var(--border); border-radius:8px;
-            padding:8px 10px; margin-bottom:8px; cursor:grab; border-left:4px solid var(--muted); }
+            padding:8px 10px; margin-bottom:8px; cursor:grab; }
     .card:active { cursor:grabbing; }
     .card .t { font-size:13px; font-weight:600; display:block; overflow:hidden;
-               text-overflow:ellipsis; white-space:nowrap; }
+               text-overflow:ellipsis; white-space:nowrap; margin-bottom:6px; }
     .card a { color:var(--text); text-decoration:none; }
     .card a:hover { color:var(--accent); }
-    .card .meta { display:flex; gap:6px; margin-top:4px; font-size:11px; color:var(--muted); }
-    .card .prio { padding:1px 7px; border-radius:999px; color:#16181d; font-weight:600; }
+    .badges { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+    .badge { font-size:11px; padding:2px 7px; border-radius:999px; font-weight:600;
+             color:#16181d; display:inline-flex; align-items:center; gap:3px; }
+    .statusdot { width:8px; height:8px; border-radius:50%; display:inline-block; }
     .empty { color:var(--muted); font-size:12px; text-align:center; padding:10px; }
   </style>
 </head>
@@ -42,9 +43,9 @@
     <a href="/panel/project/{{ slug }}">{{ ui.back }}</a>
     <h1>{{ slug }}</h1>
     <div class="filters">
-      <select id="fcat" onchange="applyFilter()">
-        <option value="">{{ ui.all_categories }}</option>
-        {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      <select id="fstatus" onchange="applyFilter()">
+        <option value="">{{ ui.all_statuses }}</option>
+        {% for s in statuses %}<option value="{{ s.key }}">{{ status_labels[s.key] }}</option>{% endfor %}
       </select>
       <select id="fprio" onchange="applyFilter()">
         <option value="">{{ ui.all_priorities }}</option>
@@ -54,23 +55,18 @@
   </header>
 
   <div class="board">
-    {% for s in statuses %}
-    <div class="col" data-status="{{ s.key }}">
-      <div class="colhead">
-        <span class="dot" style="background:{{ status_colors[s.key] }}"></span>
-        {{ status_labels[s.key] }}
-        <span class="count">{{ notes|selectattr('status','equalto',s.key)|list|length }}</span>
-      </div>
+    {% for c in categories %}
+    <div class="col" data-category="{{ c }}">
+      <div class="colhead">{{ c }}<span class="count">{{ notes|selectattr('category','equalto',c)|list|length }}</span></div>
       <div class="cards" ondrop="onDrop(event)" ondragover="event.preventDefault()">
-        {% for n in notes if n.status == s.key %}
+        {% for n in notes if n.category == c %}
         <div class="card" draggable="true" data-path="{{ n.path }}"
-             data-category="{{ n.category }}" data-priority="{{ n.priority }}"
-             style="border-left-color:{{ priority_colors[n.priority] }}"
+             data-status="{{ n.status }}" data-priority="{{ n.priority }}"
              ondragstart="event.dataTransfer.setData('text/plain','{{ n.path }}')">
           <span class="t"><a href="/panel/note/{{ n.path }}">{{ n.title }}</a></span>
-          <div class="meta">
-            <span>{{ n.category }}{% if n.subcategory and n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %}</span>
-            <span class="prio" style="background:{{ priority_colors[n.priority] }}">{{ priority_labels[n.priority] }}</span>
+          <div class="badges">
+            <span class="badge" style="background:{{ status_colors[n.status] }}"><span class="statusdot" style="background:#16181d;opacity:.6"></span>{{ status_symbols[n.status] }} {{ status_labels[n.status] }}</span>
+            <span class="badge" style="background:{{ priority_colors[n.priority] }}">{{ priority_symbols[n.priority] }} {{ priority_labels[n.priority] }}</span>
           </div>
         </div>
         {% else %}
@@ -85,20 +81,20 @@
     function onDrop(event) {
       event.preventDefault();
       const path = event.dataTransfer.getData('text/plain');
-      const status = event.currentTarget.closest('.col').dataset.status;
+      const category = event.currentTarget.closest('.col').dataset.category;
       if (!path) return;
       fetch('/api/notes/'+encodeURIComponent(path), {
         method:'PATCH', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({status: status})
+        body: JSON.stringify({category: category})
       }).then(r => { if (r.ok) location.reload(); else r.json().then(d=>alert(d.detail||'error')).catch(()=>alert('error')); });
     }
     function applyFilter() {
-      const cat = document.getElementById('fcat').value;
+      const status = document.getElementById('fstatus').value;
       const prio = document.getElementById('fprio').value;
       document.querySelectorAll('.card').forEach(c => {
-        const showCat = !cat || c.dataset.category === cat;
+        const showStatus = !status || c.dataset.status === status;
         const showPrio = !prio || c.dataset.priority === prio;
-        c.style.display = (showCat && showPrio) ? '' : 'none';
+        c.style.display = (showStatus && showPrio) ? '' : 'none';
       });
     }
   </script>

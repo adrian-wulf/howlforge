@@ -309,6 +309,9 @@ def panel_board(request: Request, slug: str) -> Response:
     def _colors(entries: list[dict]) -> dict:
         return {e["key"]: e.get("color") or "#9aa0aa" for e in entries}
 
+    def _symbols(entries: list[dict]) -> dict:
+        return {e["key"]: e.get("symbol") or "o" for e in entries}
+
     return _templates.TemplateResponse(
         request,
         "board.html",
@@ -324,6 +327,8 @@ def panel_board(request: Request, slug: str) -> Response:
             "priority_labels": _labels(priorities),
             "status_colors": _colors(statuses),
             "priority_colors": _colors(priorities),
+            "status_symbols": _symbols(statuses),
+            "priority_symbols": _symbols(priorities),
         },
     )
 

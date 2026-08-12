@@ -27,8 +27,8 @@ Telegram (capture)  ->  AI classify (LiteLLM)  ->  Markdown vault (source of tru
   categories/subcategories stay stable so your Dataview tables never break.
 - **PL / EN** UI, bot replies and AI note content, controlled by one setting.
 - **Projects** - create projects and assign ideas to them; notes move folders. Each
-  project has a **Kanban board** (drag cards between status columns, priority
-  colors, category filter).
+  project has a **Kanban board** (category columns, status/priority color + symbol
+  badges, filters).
 - **Web panel** - add/edit/**delete** ideas, filter, projects, per-project dashboards.
   Works **without any AI key**.
 - **Telegram bot** - capture ideas from your phone; add categories via `/newcat`;
@@ -177,7 +177,9 @@ Everything is customizable from the panel (or by editing files in the vault):
 - Built-in values can't be removed, but you can add as many as you like.
 
 The Kanban board is at `/panel/project/<slug>/board` (or click the project, then
-"Board"). Drag cards between status columns, filter by category and priority.
+"Board"). Columns are **categories**; each card shows a **status** and **priority**
+badge (color + symbol). Drag cards between category columns to re-categorize, and
+filter by status and priority.
 
 ## Deploy on a small VPS (free / cheap)
 

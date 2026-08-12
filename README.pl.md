@@ -27,8 +27,8 @@ Telegram (łapanie)  ->  AI klasyfikacja (LiteLLM)  ->  Markdown vault (źródł
   kategorie/podkategorie pozostają stabilne, więc tabele Dataview się nie psują.
 - **PL / EN** interfejs, odpowiedzi bota i treść notatek AI - jednym ustawieniem.
 - **Projekty** - twórz projekty i przypisuj do nich pomysły; notatki same się przenoszą.
-  Każdy projekt ma **tablicę Kanban** (przeciągaj karty między kolumnami statusów,
-  kolory priorytetów, filtr kategorii).
+  Każdy projekt ma **tablicę Kanban** (kolumny kategorii, badge statusu/priorytetu z
+  kolorem i symbolem, filtry).
 - **Panel web** - dodawanie/edycja/**usuwanie** pomysłów, filtry, projekty, dashboardy.
   Działa **bez klucza AI**.
 - **Bot Telegram** - łap pomysły z telefonu; dodawaj kategorie przez `/newcat`;
@@ -178,7 +178,9 @@ Wszystko można dostosować z panelu (albo edytując pliki w vaulcie):
 - Wartości wbudowanych nie można usunąć, ale możesz dodać ile chcesz.
 
 Tablica Kanban jest pod `/panel/project/<slug>/board` (albo wejdź w projekt i kliknij
-"Tablica"). Przeciągaj karty między kolumnami statusów, filtruj po kategorii i priorytecie.
+"Tablica"). Kolumny to **kategorie**; każda karta ma badge **statusu** i **priorytetu**
+(kolor + symbol). Przeciągaj karty między kolumnami kategorii, aby zmienić kategorię,
+i filtruj po statusie oraz priorytecie.
 
 ## Deploy na małym VPS (darmowo / tanio)
 
