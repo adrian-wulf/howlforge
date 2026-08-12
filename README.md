@@ -80,6 +80,20 @@ howlforge synthesize --days 14          # longer window
 howlforge synthesize --project cowboy-farm   # one project only
 ```
 
+### Semantic search
+
+Vector search over the vault using a lightweight SQLite index (no native extension).
+Notes are embedded via the provider-agnostic `howl-embed` model.
+
+```bash
+howlforge index                         # embed all notes into .howlforge/embeddings.db
+howlforge search "co-op wolf economy"   # rank notes by similarity
+howlforge search "farming" -k 10        # more results
+```
+
+The index is stored under `<vault>/.howlforge/` and is excluded from Obsidian and
+the note listing.
+
 Open the vault folder in Obsidian and filter notes with Dataview:
 
 ```dataview
@@ -95,7 +109,7 @@ WHERE status = "raw" AND project = "cowboy-farm"
 - [x] Telegram bot (capture) + FastAPI (HTTP capture endpoint)
 - [x] Nightly AI synthesis into project pages / MOC (append-only)
 - [x] Lightweight web panel (list / filter / edit)
-- [ ] Semantic search (sqlite-vec)
+- [x] Semantic search (sqlite-vec style)
 - [ ] JSON/CSV export for engine (Unity / Godot / Unreal)
 
 ## Architecture

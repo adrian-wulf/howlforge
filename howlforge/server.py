@@ -117,6 +117,20 @@ def api_notes(
     return rows
 
 
+@app.get("/api/search")
+def api_search(q: str, k: int = 5) -> List[Dict[str, object]]:
+    from .llm import LLMClient, LLMError
+    from .search import SearchError, search
+
+    settings = get_settings()
+    try:
+        client = LLMClient(settings.llm_config, settings.llm_model)
+        hits = search(settings.vault_path, client, q, k=k)
+    except (LLMError, SearchError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return [{"path": h.path, "title": h.title, "score": h.score} for h in hits]
+
+
 @app.patch("/api/notes/{note_path:path}", response_model=CaptureResponse)
 def api_update_note(note_path: str, req: UpdateRequest) -> CaptureResponse:
     settings = get_settings()

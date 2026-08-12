@@ -74,3 +74,28 @@ class LLMClient:
             return resp.choices[0].message.content.strip()  # type: ignore[union-attr]
         except (AttributeError, IndexError, TypeError) as exc:
             raise LLMError(f"Unexpected LLM response shape for '{model_key}': {exc}") from exc
+
+    def embed(
+        self,
+        text: str,
+        model: Optional[str] = None,
+    ) -> List[float]:
+        """Return a dense embedding vector for ``text`` via the configured model.
+
+        The default model key is ``howl-embed``. Raises :class:`LLMError` if the
+        key is missing from the config or the provider call fails.
+        """
+        model_key = model or "howl-embed"
+        if model_key not in self.available_models:
+            raise LLMError(
+                f"Embedding model key '{model_key}' is not in {self.config_path}. "
+                f"Available: {self.available_models or 'none (config empty)'}."
+            )
+        try:
+            resp = self.router.embeddings(model=model_key, input=[text])
+        except Exception as exc:  # noqa: BLE001
+            raise LLMError(f"Embedding call failed for '{model_key}': {exc}") from exc
+        try:
+            return list(resp.data[0]["embedding"])  # type: ignore[index]
+        except (AttributeError, IndexError, TypeError, KeyError) as exc:
+            raise LLMError(f"Unexpected embedding response shape: {exc}") from exc

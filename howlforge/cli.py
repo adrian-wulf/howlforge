@@ -46,6 +46,12 @@ def _build_parser() -> argparse.ArgumentParser:
     syn = sub.add_parser("synthesize", help="Synthesize recent notes into a digest.")
     syn.add_argument("--days", type=int, default=7, help="Look back N days (default 7).")
     syn.add_argument("--project", default=None, help="Restrict to one project slug.")
+
+    sub.add_parser("index", help="Build the semantic search index (embed all notes).")
+
+    srch = sub.add_parser("search", help="Semantic search over the vault.")
+    srch.add_argument("query", nargs="+", help="The search query.")
+    srch.add_argument("-k", type=int, default=5, help="Number of results (default 5).")
     return parser
 
 
@@ -140,6 +146,35 @@ def _cmd_synthesize(args, settings, lang) -> int:
     return 0
 
 
+def _cmd_index(args, settings) -> int:
+    try:
+        client = LLMClient(settings.llm_config, settings.llm_model)
+        from .search import index_vault
+        count = index_vault(settings.vault_path, client)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"indexed {count} notes")
+    return 0
+
+
+def _cmd_search(args, settings) -> int:
+    query = " ".join(args.query)
+    try:
+        client = LLMClient(settings.llm_config, settings.llm_model)
+        from .search import search
+        hits = search(settings.vault_path, client, query, k=args.k)
+    except Exception as exc:  # noqa: BLE001
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if not hits:
+        print("No results.")
+        return 0
+    for h in hits:
+        print(f"{h.score:.3f}  {h.title}  ({h.path})")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.WARNING)
     # LiteLLM's per-model cost-map warnings are noise for CLI users.
@@ -160,6 +195,10 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_list(args, settings)
     if args.command == "synthesize":
         return _cmd_synthesize(args, settings, lang)
+    if args.command == "index":
+        return _cmd_index(args, settings)
+    if args.command == "search":
+        return _cmd_search(args, settings)
     return 0
 
 
