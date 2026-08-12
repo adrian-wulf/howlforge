@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from howlforge.capture import CaptureError, capture, reply_text
+from howlforge.capture import CaptureError, capture, capture_manual, reply_text
 from howlforge.config import Settings
 
 
@@ -42,6 +42,26 @@ def test_capture_saves_note(tmp_path):
 def test_capture_empty_raises(tmp_path):
     with pytest.raises(CaptureError):
         capture("   ", _settings(tmp_path), FakeClient("{}"))
+
+
+def test_capture_manual_no_ai(tmp_path):
+    settings = _settings(tmp_path)
+    result = capture_manual(
+        "A brand new idea about wolves",
+        settings,
+        project="Wolf Pack",
+        category="gameplay",
+        priority="high",
+    )
+    assert result.ok
+    assert result.note.project == "wolf-pack"
+    assert result.note.status == "raw"
+    assert result.path.exists()
+
+
+def test_capture_manual_empty_raises(tmp_path):
+    with pytest.raises(CaptureError):
+        capture_manual("   ", _settings(tmp_path))
 
 
 def test_reply_text_pl(tmp_path):

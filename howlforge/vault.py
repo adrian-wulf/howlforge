@@ -54,6 +54,25 @@ def project_folder(vault_root: Path, project: str) -> Path:
     return folder
 
 
+def list_projects(vault_root: Path) -> list[str]:
+    """Return the names (slugs) of all project folders in the vault."""
+    root = Path(vault_root) / "10 Projects"
+    if not root.exists():
+        return []
+    return sorted(
+        p.name for p in root.iterdir() if p.is_dir() and not p.name.startswith(".")
+    )
+
+
+def create_project(vault_root: Path, name: str) -> str:
+    """Create a project folder and return its slug. No-op if it exists."""
+    slug = _slugify(name)
+    if not slug:
+        raise ValueError("Project name cannot be empty.")
+    project_folder(vault_root, slug)
+    return slug
+
+
 def write_note(note: Note, vault_root: Path) -> Path:
     """Write a note into the vault, never overwriting an existing file.
 
@@ -106,12 +125,14 @@ def update_note(
     priority: Optional[str] = None,
     category: Optional[str] = None,
     subcategory: Optional[str] = None,
+    project: Optional[str] = None,
     body: Optional[str] = None,
 ) -> Note:
     """Update select fields of a note in place and return the updated note.
 
     Only ``status`` and ``priority`` are validated against the vocabulary; the
-    others are applied as-is so free text (title/body) is not restricted.
+    others are applied as-is so free text (title/body) is not restricted. When
+    ``project`` changes, the note is moved to the new project folder.
     """
     root = Path(vault_root).resolve()
     path = (root / relative_path).resolve()
@@ -121,6 +142,12 @@ def update_note(
         raise FileNotFoundError(f"No such note: {relative_path}")
 
     note = Note.from_markdown(path.read_text(encoding="utf-8"))
+    project_changed = False
+    if project is not None:
+        new_slug = _slugify(project)
+        if (note.project or "") != new_slug:
+            note.project = new_slug or None
+            project_changed = True
     if status is not None:
         if not _status_valid(status):
             raise ValueError(f"Invalid status: {status}")
@@ -138,6 +165,18 @@ def update_note(
     if body is not None:
         note.body = body
     note.updated = _now_iso()
+
+    if project_changed:
+        folder = destination_path(note, root)
+        folder.mkdir(parents=True, exist_ok=True)
+        new_path = folder / path.name
+        counter = 2
+        while new_path.exists():
+            new_path = folder / f"{path.stem}-{counter}{path.suffix}"
+            counter += 1
+        path.rename(new_path)
+        path = new_path
+
     path.write_text(note.to_markdown(), encoding="utf-8")
     logger.info("Updated note -> %s", path)
     return note

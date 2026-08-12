@@ -7,8 +7,10 @@ classify -> validate -> save to the vault -> return the result for a reply.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 from .classify import ClassifyError, classify
 from .config import Settings
@@ -18,6 +20,10 @@ from .schema import Note
 from .vault import write_note
 
 logger = logging.getLogger(__name__)
+
+
+def _slugify(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9]+", "-", value.strip()).strip("-").lower()
 
 
 @dataclass
@@ -30,6 +36,47 @@ class CaptureResult:
 
 class CaptureError(RuntimeError):
     pass
+
+
+def capture_manual(
+    text: str,
+    settings: Settings,
+    *,
+    project: Optional[str] = None,
+    category: str = "misc",
+    subcategory: str = "none",
+    status: str = "raw",
+    priority: str = "backlog",
+    tags: Optional[list[str]] = None,
+) -> CaptureResult:
+    """Save a note directly from the panel without an AI call.
+
+    ``text`` becomes the body; a short title is derived from it. This works with
+    no API key configured.
+    """
+    text = text.strip()
+    if not text:
+        raise CaptureError("Empty capture text.")
+    title = text.splitlines()[0].strip()
+    if len(title) > 60:
+        title = title[:60].rsplit(" ", 1)[0]
+    note = Note(
+        title=title,
+        body=text,
+        project=_slugify(project) if project else None,
+        category=category,
+        subcategory=subcategory,
+        status=status,
+        priority=priority,
+        tags=[_slugify(t) for t in (tags or []) if t.strip()],
+        source="manual",
+        language=normalize_lang(settings.language),
+    )
+    errors = note.validate()
+    if errors:
+        raise CaptureError("; ".join(errors))
+    path = write_note(note, settings.vault_path)
+    return CaptureResult(note=note, path=path)
 
 
 def capture(text: str, settings: Settings, client: LLMClient | None = None) -> CaptureResult:

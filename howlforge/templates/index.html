@@ -18,7 +18,19 @@
     .filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
     select, button { background:var(--panel); color:var(--text); border:1px solid var(--border);
                      border-radius:8px; padding:8px 12px; font-size:14px; }
-    .table { display:grid; grid-template-columns: 1fr 130px 130px 150px 80px;
+    input { background:var(--panel); color:var(--text); border:1px solid var(--border);
+            border-radius:8px; padding:8px 12px; font-size:14px; }
+    .card { border:1px solid var(--border); border-radius:10px; padding:14px 16px;
+            margin-bottom:16px; background:var(--panel); }
+    .card h2 { margin:0 0 10px; font-size:14px; color:var(--muted); text-transform:uppercase;
+               letter-spacing:.04em; }
+    .addcard textarea { width:100%; background:var(--bg); color:var(--text);
+                        border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+                        font-size:14px; resize:vertical; margin-bottom:10px; font-family:inherit; }
+    .addrow { display:flex; gap:10px; flex-wrap:wrap; }
+    .addrow button { background:var(--accent); border:none; color:#16181d; font-weight:600;
+                     cursor:pointer; }
+    .table { display:grid; grid-template-columns: 1fr 160px 140px 130px 90px;
              gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
     .row-head, .row { display:contents; }
     .cell { padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
@@ -49,6 +61,37 @@
   </header>
   <main>
     <div id="flash" class="flash"></div>
+
+    <section class="card addcard">
+      <h2>Add an idea</h2>
+      <form id="addform">
+        <textarea name="text" rows="2" placeholder="Jot down an idea..." required></textarea>
+        <div class="addrow">
+          <select name="project">
+            <option value="">— no project —</option>
+            {% for p in projects %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+          </select>
+          <select name="category">
+            {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select>
+          <select name="priority">
+            {% for pr in priorities %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}
+          </select>
+          <select name="status">
+            {% for s in statuses %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>New project</h2>
+      <form id="projform" class="addrow">
+        <input name="name" placeholder="Project name, e.g. Cowboy Farm" required>
+        <button type="submit">Create</button>
+      </form>
+    </section>
 
     <form class="filters" method="get" action="/panel">
       <select name="project">
@@ -90,7 +133,14 @@
             {% for t in (n.tags or [])[:3] %}<span class="tag">{{ t }}</span>{% endfor %}
           </div>
         </div>
-        <div class="cell muted">{{ n.project or '—' }}</div>
+        <div class="cell">
+          <select class="project" data-path="{{ n.path }}" data-field="project">
+            <option value="">— none —</option>
+            {% for p in projects %}
+            <option value="{{ p }}" {% if p == n.project %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <div class="cell">{{ n.category }}{% if n.subcategory and n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %}</div>
         <div class="cell">
           <select class="priority" data-path="{{ n.path }}" data-field="priority">
@@ -117,16 +167,49 @@
   <script>
     const flash = document.getElementById('flash');
     function show(cls, msg){ flash.className='flash '+cls; flash.textContent=msg;
-      setTimeout(()=>{ flash.className='flash'; }, 2500); }
+      setTimeout(()=>{ flash.className='flash'; }, 3000); }
+
+    document.getElementById('addform').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const body = { text: fd.get('text'), ai: false, project: fd.get('project') || null,
+                     category: fd.get('category'), priority: fd.get('priority'),
+                     status: fd.get('status') };
+      try {
+        const r = await fetch('/api/capture', { method:'POST',
+          headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail||('HTTP '+r.status)); }
+        const d = await r.json();
+        show('ok','Saved "'+d.title+'"');
+        e.target.reset();
+        setTimeout(()=>location.reload(), 500);
+      } catch(err){ show('err','Failed: '+err.message); }
+    });
+
+    document.getElementById('projform').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      try {
+        const r = await fetch('/api/projects', { method:'POST',
+          headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: fd.get('name')}) });
+        if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail||('HTTP '+r.status)); }
+        const d = await r.json();
+        show('ok','Project "'+d.name+'" created');
+        e.target.reset();
+        setTimeout(()=>location.reload(), 500);
+      } catch(err){ show('err','Failed: '+err.message); }
+    });
+
     document.querySelectorAll('select[data-field]').forEach(sel=>{
       sel.addEventListener('change', async ()=>{
-        const body = {}; body[sel.dataset.field] = sel.value;
+        const body = {}; body[sel.dataset.field] = sel.value || null;
         try {
           const r = await fetch('/api/notes/'+encodeURIComponent(sel.dataset.path), {
             method:'PATCH', headers:{'Content-Type':'application/json'},
             body: JSON.stringify(body) });
           if (!r.ok) throw new Error('HTTP '+r.status);
-          show('ok','Updated ' + sel.dataset.field + ' → ' + sel.value);
+          show('ok','Updated ' + sel.dataset.field + ' → ' + (sel.value||'none'));
+          if (sel.dataset.field === 'project') setTimeout(()=>location.reload(), 600);
         } catch(e){ show('err','Update failed: '+e.message); }
       });
     });

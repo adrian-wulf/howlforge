@@ -59,15 +59,19 @@ curl -X POST localhost:8000/api/capture -H 'content-type: application/json' \
 
 ### Web panel
 
-A lightweight, self-hosted dashboard: list, filter and quickly update notes.
+A lightweight, self-hosted dashboard: **add ideas**, manage **projects**, and
+list / filter / update notes. Works fully without an AI key.
 
 ```bash
 uvicorn howlforge.server:app --host 0.0.0.0 --port 8000
 # open http://localhost:8000/panel
 ```
 
-Also exposes a JSON API: `GET /api/notes?project=&status=&category=`,
-`PATCH /api/notes/{path}` (edit status/priority/etc).
+- Add an idea (assign to a project, category, priority, status) - saved directly.
+- Create projects and assign/reassign notes to them.
+- JSON API: `GET /api/projects`, `POST /api/projects`,
+  `GET /api/notes?project=&status=&category=`, `PATCH /api/notes/{path}`,
+  `POST /api/capture` (`ai: false` = no key needed; `ai: true` = classify).
 
 ### Nightly synthesis (append-only)
 

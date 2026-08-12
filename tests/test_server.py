@@ -79,3 +79,44 @@ def test_panel_renders(client, tmp_path):
     r = client.get("/panel")
     assert r.status_code == 200
     assert "HowlForge" in r.text
+
+
+def test_capture_manual_no_ai(client, tmp_path):
+    r = client.post(
+        "/api/capture",
+        json={"text": "A brand new idea", "ai": False, "project": "wolfpack",
+              "category": "gameplay", "priority": "high", "status": "raw"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] is True
+    assert body["title"] == "A brand new idea"
+    # file exists and has the project
+    saved = tmp_path / "00 Inbox" / "a-brand-new-idea.md"
+    assert saved.exists()
+    assert "project: wolfpack" in saved.read_text(encoding="utf-8")
+
+
+def test_capture_manual_empty_422(client):
+    r = client.post("/api/capture", json={"text": "   ", "ai": False})
+    assert r.status_code == 422
+
+
+def test_projects_list_and_create(client, tmp_path):
+    assert client.get("/api/projects").json() == []
+    r = client.post("/api/projects", json={"name": "Cowboy Farm"})
+    assert r.status_code == 200
+    assert r.json() == {"name": "Cowboy Farm", "slug": "cowboy-farm"}
+    assert client.get("/api/projects").json() == ["cowboy-farm"]
+    assert (tmp_path / "10 Projects" / "cowboy-farm").is_dir()
+
+
+def test_patch_project_moves_note(client, tmp_path):
+    # a "mechanic" without a project sits in the generic Mechanics folder
+    write_note(Note(title="Wolf A", status="raw", type="mechanic"), tmp_path)
+    old_path = "10 Projects/Mechanics/wolf-a.md"
+    r = client.patch(f"/api/notes/{old_path}", json={"project": "wolfpack"})
+    assert r.status_code == 200
+    new = tmp_path / "10 Projects" / "wolfpack" / "Mechanics" / "wolf-a.md"
+    assert new.exists()
+    assert "project: wolfpack" in new.read_text(encoding="utf-8")

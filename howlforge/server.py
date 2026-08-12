@@ -18,10 +18,10 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
-from .capture import CaptureError, capture
+from .capture import CaptureError, capture, capture_manual
 from .config import get_settings
 from .schema import Note
-from .vault import list_notes, update_note
+from .vault import create_project, list_notes, list_projects, update_note
 
 app = FastAPI(title="HowlForge", version="0.1.0")
 _templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -29,6 +29,13 @@ _templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 class CaptureRequest(BaseModel):
     text: str = Field(..., min_length=1)
+    ai: bool = False
+    project: Optional[str] = None
+    category: str = "misc"
+    subcategory: str = "none"
+    status: str = "raw"
+    priority: str = "backlog"
+    tags: List[str] = Field(default_factory=list)
 
 
 class CaptureResponse(BaseModel):
@@ -46,6 +53,7 @@ class UpdateRequest(BaseModel):
     priority: Optional[str] = None
     category: Optional[str] = None
     subcategory: Optional[str] = None
+    project: Optional[str] = None
     body: Optional[str] = None
 
 
@@ -81,7 +89,7 @@ def panel(request: Request) -> Response:
     ]
     from . import vocabulary
 
-    projects = sorted({r["project"] for r in rows if r["project"]})
+    projects = list_projects(settings.vault_path)
     return _templates.TemplateResponse(
         request,
         "index.html",
@@ -156,6 +164,7 @@ def api_update_note(note_path: str, req: UpdateRequest) -> CaptureResponse:
             priority=req.priority,
             category=req.category,
             subcategory=req.subcategory,
+            project=req.project,
             body=req.body,
         )
     except FileNotFoundError as exc:
@@ -172,11 +181,41 @@ def api_update_note(note_path: str, req: UpdateRequest) -> CaptureResponse:
     )
 
 
+@app.get("/api/projects")
+def api_projects() -> List[str]:
+    return list_projects(get_settings().vault_path)
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+
+
+@app.post("/api/projects")
+def api_create_project(req: ProjectCreate) -> Dict[str, object]:
+    try:
+        slug = create_project(get_settings().vault_path, req.name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"name": req.name, "slug": slug}
+
+
 @app.post("/api/capture", response_model=CaptureResponse)
 def api_capture(req: CaptureRequest) -> CaptureResponse:
     settings = get_settings()
     try:
-        result = capture(req.text, settings)
+        if req.ai:
+            result = capture(req.text, settings)
+        else:
+            result = capture_manual(
+                req.text,
+                settings,
+                project=req.project,
+                category=req.category,
+                subcategory=req.subcategory,
+                status=req.status,
+                priority=req.priority,
+                tags=req.tags,
+            )
     except CaptureError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     note = result.note
