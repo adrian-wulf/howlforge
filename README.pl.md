@@ -27,6 +27,8 @@ Telegram (łapanie)  ->  AI klasyfikacja (LiteLLM)  ->  Markdown vault (źródł
   kategorie/podkategorie pozostają stabilne, więc tabele Dataview się nie psują.
 - **PL / EN** interfejs, odpowiedzi bota i treść notatek AI - jednym ustawieniem.
 - **Projekty** - twórz projekty i przypisuj do nich pomysły; notatki same się przenoszą.
+  Każdy projekt ma **tablicę Kanban** (przeciągaj karty między kolumnami statusów,
+  kolory priorytetów, filtr kategorii).
 - **Panel web** - dodawanie/edycja/**usuwanie** pomysłów, filtry, projekty, dashboardy.
   Działa **bez klucza AI**.
 - **Bot Telegram** - łap pomysły z telefonu; dodawaj kategorie przez `/newcat`;
@@ -163,6 +165,20 @@ HOWLFORGE_LANGUAGE=pl       # lub en
 ```
 
 Steruje panelem web, odpowiedziami bota i treścią notatek pisanych przez AI.
+
+### Własne słownictwo (statusy, priorytety, kategorie)
+
+Wszystko można dostosować z panelu (albo edytując pliki w vaulcie):
+
+- **Kategorie** - dodawaj/usuwaj własne kategorie i podkategorie
+  (`<vault>/.howlforge/categories.json`).
+- **Statusy** i **priorytety** - dodawaj/usuwaj z własnymi polskimi i angielskimi
+  etykietami oraz kolorami (`<vault>/.howlforge/vocab.json`). Pojawiają się na
+  tablicy Kanban, w filtrach i klasyfikacji.
+- Wartości wbudowanych nie można usunąć, ale możesz dodać ile chcesz.
+
+Tablica Kanban jest pod `/panel/project/<slug>/board` (albo wejdź w projekt i kliknij
+"Tablica"). Przeciągaj karty między kolumnami statusów, filtruj po kategorii i priorytecie.
 
 ## Deploy na małym VPS (darmowo / tanio)
 

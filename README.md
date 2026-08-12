@@ -26,7 +26,9 @@ Telegram (capture)  ->  AI classify (LiteLLM)  ->  Markdown vault (source of tru
 - **Controlled vocabulary** that you can extend: statuses, priorities and
   categories/subcategories stay stable so your Dataview tables never break.
 - **PL / EN** UI, bot replies and AI note content, controlled by one setting.
-- **Projects** - create projects and assign ideas to them; notes move folders.
+- **Projects** - create projects and assign ideas to them; notes move folders. Each
+  project has a **Kanban board** (drag cards between status columns, priority
+  colors, category filter).
 - **Web panel** - add/edit/**delete** ideas, filter, projects, per-project dashboards.
   Works **without any AI key**.
 - **Telegram bot** - capture ideas from your phone; add categories via `/newcat`;
@@ -162,6 +164,20 @@ HOWLFORGE_LANGUAGE=pl       # or en
 ```
 
 Controls the web panel, bot replies and AI-written note content.
+
+### Custom vocabulary (statuses, priorities, categories)
+
+Everything is customizable from the panel (or by editing files in the vault):
+
+- **Categories** - add/remove your own categories + subcategories
+  (`<vault>/.howlforge/categories.json`).
+- **Statuses** and **priorities** - add/remove with your own Polish + English labels
+  and colors (`<vault>/.howlforge/vocab.json`). They appear in the Kanban board,
+  filters and classification.
+- Built-in values can't be removed, but you can add as many as you like.
+
+The Kanban board is at `/panel/project/<slug>/board` (or click the project, then
+"Board"). Drag cards between status columns, filter by category and priority.
 
 ## Deploy on a small VPS (free / cheap)
 
