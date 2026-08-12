@@ -27,9 +27,10 @@ Telegram (capture)  ->  AI classify (LiteLLM)  ->  Markdown vault (source of tru
   categories/subcategories stay stable so your Dataview tables never break.
 - **PL / EN** UI, bot replies and AI note content, controlled by one setting.
 - **Projects** - create projects and assign ideas to them; notes move folders.
-- **Web panel** - add ideas, edit notes, filter, per-project dashboards. Works
-  **without any AI key**.
-- **Telegram bot** - capture ideas from your phone; add categories via `/newcat`.
+- **Web panel** - add/edit/**delete** ideas, filter, projects, per-project dashboards.
+  Works **without any AI key**.
+- **Telegram bot** - capture ideas from your phone; add categories via `/newcat`;
+  add and delete notes, projects and categories via the reply keyboard.
 - **Nightly AI synthesis** - append-only digests; never overwrites your notes.
 - **Semantic search** - SQLite vector index, no native extension needed.
 - **JSON/CSV export** for Unity / Godot / Unreal.
@@ -116,7 +117,7 @@ TELEGRAM_CHAT_IDS=123456789,987654321
 
 Commands: `/help`, `/lang`, `/newcat Name sub1,sub2`, `/status`, `/cancel`.
 
-The reply keyboard has six buttons:
+The reply keyboard has seven buttons:
 
 | Button | What it does |
 |---|---|
@@ -125,6 +126,7 @@ The reply keyboard has six buttons:
 | **New category** | Add a note category (with subcategories) |
 | **Project** | Set a **default project** - every idea then goes to it automatically |
 | **Language** | Toggle PL/EN |
+| **Delete** | Delete a note, project or category |
 | **Help** | Show help |
 
 The chosen **language** and **default project** are saved per user in
@@ -138,9 +140,12 @@ it to your default project when one is set.
 
 - Panel: `http://localhost:8000/panel`
 - Add idea / project / category / edit notes / dashboards from the panel.
+- **Delete** notes, projects and categories from the panel.
 - API: `GET /api/notes`, `GET /api/notes/{path}`, `PATCH /api/notes/{path}`,
-  `POST /api/capture`, `GET /api/projects`, `POST /api/projects`,
-  `GET /api/categories`, `POST /api/categories`, `GET /api/search`, `GET /api/export`.
+  `DELETE /api/notes/{path}`, `POST /api/capture`, `GET /api/projects`,
+  `POST /api/projects`, `DELETE /api/projects/{slug}`, `GET /api/categories`,
+  `POST /api/categories`, `DELETE /api/categories/{name}`, `GET /api/search`,
+  `GET /api/export`.
 
 ### Protect the panel
 

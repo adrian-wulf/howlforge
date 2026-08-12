@@ -27,9 +27,10 @@ Telegram (łapanie)  ->  AI klasyfikacja (LiteLLM)  ->  Markdown vault (źródł
   kategorie/podkategorie pozostają stabilne, więc tabele Dataview się nie psują.
 - **PL / EN** interfejs, odpowiedzi bota i treść notatek AI - jednym ustawieniem.
 - **Projekty** - twórz projekty i przypisuj do nich pomysły; notatki same się przenoszą.
-- **Panel web** - dodawanie pomysłów, edycja notatek, filtry, dashboardy projektów.
+- **Panel web** - dodawanie/edycja/**usuwanie** pomysłów, filtry, projekty, dashboardy.
   Działa **bez klucza AI**.
-- **Bot Telegram** - łap pomysły z telefonu; dodawaj kategorie przez `/newcat`.
+- **Bot Telegram** - łap pomysły z telefonu; dodawaj kategorie przez `/newcat`;
+  dodawaj i usuwaj notatki, projekty i kategorie przez klawiaturę.
 - **Nocna synteza AI** - digesty append-only; nigdy nie nadpisuje Twoich notatek.
 - **Wyszukiwanie semantyczne** - indeks wektorowy w SQLite, bez natywnych rozszerzeń.
 - **Eksport JSON/CSV** pod Unity / Godot / Unreal.
@@ -116,7 +117,7 @@ TELEGRAM_CHAT_IDS=123456789,987654321
 
 Komendy: `/help`, `/lang`, `/newcat Nazwa pod1,pod2`, `/status`, `/cancel`.
 
-Klawiatura ma sześć przycisków:
+Klawiatura ma siedem przycisków:
 
 | Przycisk | Co robi |
 |---|---|
@@ -125,6 +126,7 @@ Klawiatura ma sześć przycisków:
 | **Nowa kategoria** | Dodaje kategorię notatek (z podkategoriami) |
 | **Projekt** | Ustawia **domyślny projekt** - każdy pomysł trafia do niego automatycznie |
 | **Język** | Przełącza PL/EN |
+| **Usuń** | Usuwa notatkę, projekt lub kategorię |
 | **Pomoc** | Pokazuje pomoc |
 
 Wybrany **język** i **domyślny projekt** są zapisywane per użytkownik w
@@ -138,9 +140,12 @@ przypisując ją do domyślnego projektu, jeśli jest ustawiony.
 
 - Panel: `http://localhost:8000/panel`
 - Dodawanie pomysłu / projektu / kategorii, edycja notatek, dashboardy z panelu.
+- **Usuwanie** notatek, projektów i kategorii z panelu.
 - API: `GET /api/notes`, `GET /api/notes/{path}`, `PATCH /api/notes/{path}`,
-  `POST /api/capture`, `GET /api/projects`, `POST /api/projects`,
-  `GET /api/categories`, `POST /api/categories`, `GET /api/search`, `GET /api/export`.
+  `DELETE /api/notes/{path}`, `POST /api/capture`, `GET /api/projects`,
+  `POST /api/projects`, `DELETE /api/projects/{slug}`, `GET /api/categories`,
+  `POST /api/categories`, `DELETE /api/categories/{name}`, `GET /api/search`,
+  `GET /api/export`.
 
 ### Zabezpieczenie panelu
 
