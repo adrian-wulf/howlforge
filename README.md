@@ -1,11 +1,11 @@
-# HowlForge 🐺
+# HowlForge
 
 > Self-hosted **second brain for game production**. Capture an idea on your phone,
 > let an AI classify it, and watch it land in an organized Markdown vault you own
 > forever. Open-source, provider-agnostic, works at **$0** out of the box.
 
 ```
-Telegram (capture)  →  AI classify (LiteLLM)  →  Markdown vault (source of truth)
+Telegram (capture)  ->  AI classify (LiteLLM)  ->  Markdown vault (source of truth)
                                             ↘   Obsidian / Dataview / CLI
 ```
 
@@ -69,9 +69,13 @@ uvicorn howlforge.server:app --host 0.0.0.0 --port 8000
 
 - Add an idea (assign to a project, category, priority, status) - saved directly.
 - Create projects and assign/reassign notes to them.
+- Click a note title to open a **full editor** (frontmatter + Markdown body) at
+  `/panel/note/<path>`.
+- Per-project **dashboard** with stats at `/panel/project/<slug>`.
 - JSON API: `GET /api/projects`, `POST /api/projects`,
-  `GET /api/notes?project=&status=&category=`, `PATCH /api/notes/{path}`,
-  `POST /api/capture` (`ai: false` = no key needed; `ai: true` = classify).
+  `GET /api/notes?project=&status=&category=`, `GET /api/notes/{path}`,
+  `PATCH /api/notes/{path}`, `POST /api/capture` (`ai: false` = no key needed;
+  `ai: true` = classify).
 
 ### Nightly synthesis (append-only)
 

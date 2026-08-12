@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 from .capture import CaptureError, capture, capture_manual
 from .config import get_settings
 from .schema import Note
-from .vault import create_project, list_notes, list_projects, update_note
+from .vault import create_project, list_notes, list_projects, read_note, update_note
 
 app = FastAPI(title="HowlForge", version="0.1.0")
 _templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -123,6 +123,80 @@ def api_notes(
         rows.append(_summarize(note, settings.vault_path, p))
     rows.sort(key=lambda r: r["created"], reverse=True)
     return rows
+
+
+def _note_detail(note: Note, vault_root: Path, path: Path) -> Dict[str, object]:
+    d = _summarize(note, vault_root, path)
+    d["related"] = note.related
+    d["source"] = note.source
+    d["language"] = note.language
+    d["body"] = note.body
+    return d
+
+
+@app.get("/api/notes/{note_path:path}")
+def api_get_note(note_path: str) -> Dict[str, object]:
+    settings = get_settings()
+    try:
+        note = read_note(settings.vault_path, note_path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return _note_detail(note, settings.vault_path, Path(settings.vault_path) / note_path)
+
+
+@app.get("/panel/note/{note_path:path}")
+def panel_note(request: Request, note_path: str) -> Response:
+    settings = get_settings()
+    from . import vocabulary
+
+    try:
+        note = read_note(settings.vault_path, note_path)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _templates.TemplateResponse(
+        request,
+        "note.html",
+        {
+            "request": request,
+            "note_path": note_path,
+            "note": note,
+            "projects": list_projects(settings.vault_path),
+            "statuses": vocabulary.STATUSES,
+            "priorities": vocabulary.PRIORITIES,
+            "categories": list(vocabulary.CATEGORIES),
+        },
+    )
+
+
+@app.get("/panel/project/{slug}")
+def panel_project(request: Request, slug: str) -> Response:
+    settings = get_settings()
+    from collections import Counter
+
+    from . import vocabulary
+
+    rows = []
+    for p in list_notes(settings.vault_path):
+        note = Note.from_markdown(p.read_text(encoding="utf-8"))
+        if (note.project or "") == slug:
+            rows.append(_summarize(note, settings.vault_path, p))
+    by_status = Counter(r["status"] for r in rows)
+    by_category = Counter(r["category"] for r in rows)
+    return _templates.TemplateResponse(
+        request,
+        "project.html",
+        {
+            "request": request,
+            "slug": slug,
+            "notes": sorted(rows, key=lambda r: r["created"], reverse=True),
+            "by_status": dict(by_status),
+            "by_category": dict(by_category),
+            "total": len(rows),
+            "statuses": vocabulary.STATUSES,
+        },
+    )
 
 
 @app.get("/api/export")

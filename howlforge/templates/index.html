@@ -30,13 +30,22 @@
     .addrow { display:flex; gap:10px; flex-wrap:wrap; }
     .addrow button { background:var(--accent); border:none; color:#16181d; font-weight:600;
                      cursor:pointer; }
-    .table { display:grid; grid-template-columns: 1fr 160px 140px 130px 90px;
-             gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-    .row-head, .row { display:contents; }
-    .cell { padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
-    .row-head .cell { color:var(--muted); font-size:12px; text-transform:uppercase;
-                      letter-spacing:.04em; background:var(--panel); }
-    .title { font-weight:600; }
+    .tablewrap { border:1px solid var(--border); border-radius:10px; overflow:auto; }
+    table.notes { width:100%; border-collapse:collapse; table-layout:auto; }
+    table.notes th, table.notes td { padding:10px 14px; text-align:left; white-space:nowrap;
+             border-bottom:1px solid var(--border); font-size:14px; vertical-align:top; }
+    table.notes th { color:var(--muted); font-size:12px; text-transform:uppercase;
+             letter-spacing:.04em; background:var(--panel); white-space:nowrap; }
+    table.notes tr:last-child td { border-bottom:none; }
+    .titlecell { max-width:340px; }
+    .titlecell .t { display:block; font-weight:600; overflow:hidden;
+                    text-overflow:ellipsis; white-space:nowrap; }
+    .notelink { color:var(--text); text-decoration:none; }
+    .notelink:hover { color:var(--accent); text-decoration:underline; }
+    .projects { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px; }
+    .projects a { background:var(--panel); border:1px solid var(--border); color:var(--text);
+                  text-decoration:none; border-radius:999px; padding:6px 14px; font-size:13px; }
+    .projects a:hover { border-color:var(--accent); color:var(--accent); }
     .muted { color:var(--muted); font-size:12px; }
     .tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px;
            border:1px solid var(--border); color:var(--muted); margin-right:4px; }
@@ -55,12 +64,15 @@
 </head>
 <body>
   <header>
-    <span class="wolf">🐺</span>
     <h1>HowlForge</h1>
     <span class="muted" style="margin-left:auto">{{ notes|length }} notes</span>
   </header>
   <main>
     <div id="flash" class="flash"></div>
+
+    <div class="projects">
+      {% for p in projects %}<a href="/panel/project/{{ p }}">{{ p }}</a>{% endfor %}
+    </div>
 
     <section class="card addcard">
       <h2>Add an idea</h2>
@@ -116,48 +128,54 @@
     </form>
 
     {% if notes %}
-    <div class="table">
-      <div class="row-head">
-        <div class="cell">Note</div>
-        <div class="cell">Project</div>
-        <div class="cell">Category</div>
-        <div class="cell">Priority</div>
-        <div class="cell">Status</div>
-      </div>
-      {% for n in notes %}
-      <div class="row">
-        <div class="cell title">
-          {{ n.title }}
-          <div class="muted">
-            {{ n.type }}{% if n.generated %} · <span class="tag">AI</span>{% endif %}
-            {% for t in (n.tags or [])[:3] %}<span class="tag">{{ t }}</span>{% endfor %}
-          </div>
-        </div>
-        <div class="cell">
-          <select class="project" data-path="{{ n.path }}" data-field="project">
-            <option value="">— none —</option>
-            {% for p in projects %}
-            <option value="{{ p }}" {% if p == n.project %}selected{% endif %}>{{ p }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="cell">{{ n.category }}{% if n.subcategory and n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %}</div>
-        <div class="cell">
-          <select class="priority" data-path="{{ n.path }}" data-field="priority">
-            {% for pr in priorities %}
-            <option value="{{ pr }}" {% if pr == n.priority %}selected{% endif %}>{{ pr }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="cell">
-          <select class="status status-{{ n.status }}" data-path="{{ n.path }}" data-field="status">
-            {% for s in statuses %}
-            <option value="{{ s }}" {% if s == n.status %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      {% endfor %}
+    <div class="tablewrap">
+      <table class="notes">
+        <thead>
+          <tr>
+            <th>Note</th>
+            <th>Project</th>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for n in notes %}
+          <tr>
+            <td class="titlecell">
+              <span class="t"><a class="notelink" href="/panel/note/{{ n.path }}" title="{{ n.title }}">{{ n.title }}</a></span>
+              <div class="muted">
+                {{ n.type }}{% if n.generated %} · <span class="tag">AI</span>{% endif %}
+                {% for t in (n.tags or [])[:3] %}<span class="tag">{{ t }}</span>{% endfor %}
+              </div>
+            </td>
+            <td>
+              <select class="project" data-path="{{ n.path }}" data-field="project">
+                <option value="">— none —</option>
+                {% for p in projects %}
+                <option value="{{ p }}" {% if p == n.project %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>{{ n.category }}{% if n.subcategory and n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %}</td>
+            <td>
+              <select class="priority" data-path="{{ n.path }}" data-field="priority">
+                {% for pr in priorities %}
+                <option value="{{ pr }}" {% if pr == n.priority %}selected{% endif %}>{{ pr }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <select class="status status-{{ n.status }}" data-path="{{ n.path }}" data-field="status">
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if s == n.status %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
     {% else %}
     <div class="empty">No notes match these filters.</div>
@@ -208,7 +226,7 @@
             method:'PATCH', headers:{'Content-Type':'application/json'},
             body: JSON.stringify(body) });
           if (!r.ok) throw new Error('HTTP '+r.status);
-          show('ok','Updated ' + sel.dataset.field + ' → ' + (sel.value||'none'));
+          show('ok','Updated ' + sel.dataset.field + ' -> ' + (sel.value||'none'));
           if (sel.dataset.field === 'project') setTimeout(()=>location.reload(), 600);
         } catch(e){ show('err','Update failed: '+e.message); }
       });

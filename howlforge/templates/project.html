@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ slug }} · HowlForge</title>
+  <style>
+    :root { --bg:#16181d; --panel:#1e2128; --border:#2b2f38; --text:#e6e8eb;
+            --muted:#9aa0aa; --accent:#d97757; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+           background:var(--bg); color:var(--text); }
+    header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex;
+             align-items:center; gap:12px; }
+    header a { color:var(--accent); text-decoration:none; }
+    main { padding:24px; max-width:1100px; margin:0 auto; }
+    h1 { font-size:20px; margin:6px 0 2px; }
+    .stats { display:flex; gap:14px; flex-wrap:wrap; margin:18px 0; }
+    .stat { background:var(--panel); border:1px solid var(--border); border-radius:10px;
+            padding:12px 18px; min-width:120px; }
+    .stat .n { font-size:22px; font-weight:700; }
+    .stat .l { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .cols { display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+    .card h3 { margin:0 0 10px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .bar { display:flex; gap:6px; align-items:center; margin:4px 0; font-size:13px; }
+    .bar .key { width:120px; color:var(--muted); }
+    .bar .fill { height:12px; background:var(--accent); border-radius:6px; }
+    .bar .val { color:var(--text); }
+    .note { display:flex; justify-content:space-between; align-items:center;
+            padding:12px 14px; border-bottom:1px solid var(--border); }
+    .note:last-child { border-bottom:none; }
+    .note a { color:var(--text); text-decoration:none; font-weight:600; }
+    .note a:hover { color:var(--accent); }
+    .muted { color:var(--muted); font-size:12px; }
+    .empty { color:var(--muted); padding:24px; text-align:center; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/panel">← Back</a>
+    <h1 style="margin-left:8px">{{ slug }}</h1>
+    <span class="muted" style="margin-left:auto">{{ total }} notes</span>
+  </header>
+  <main>
+    <div class="stats">
+      <div class="stat"><div class="n">{{ total }}</div><div class="l">Notes</div></div>
+      {% for s in statuses %}{% if by_status.get(s) %}
+      <div class="stat"><div class="n">{{ by_status[s] }}</div><div class="l">{{ s }}</div></div>
+      {% endif %}{% endfor %}
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <h3>By status</h3>
+        {% if by_status %}
+        {% for s, n in by_status.items() %}
+        <div class="bar"><span class="key">{{ s }}</span>
+          <span class="fill" style="width:{{ (n/total*100)|round|int }}%"></span>
+          <span class="val">{{ n }}</span></div>
+        {% endfor %}
+        {% else %}<div class="muted">No notes yet.</div>{% endif %}
+      </div>
+      <div class="card">
+        <h3>By category</h3>
+        {% if by_category %}
+        {% for c, n in by_category.items() %}
+        <div class="bar"><span class="key">{{ c }}</span>
+          <span class="fill" style="width:{{ (n/total*100)|round|int }}%"></span>
+          <span class="val">{{ n }}</span></div>
+        {% endfor %}
+        {% else %}<div class="muted">No notes yet.</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Notes</h3>
+      {% if notes %}
+      {% for n in notes %}
+      <div class="note">
+        <a href="/panel/note/{{ n.path }}">{{ n.title }}</a>
+        <span class="muted">{{ n.status }} · {{ n.category }}{% if n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %} · {{ n.created[:10] }}</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty">No notes assigned to this project.</div>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>

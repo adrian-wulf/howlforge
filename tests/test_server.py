@@ -120,3 +120,34 @@ def test_patch_project_moves_note(client, tmp_path):
     new = tmp_path / "10 Projects" / "wolfpack" / "Mechanics" / "wolf-a.md"
     assert new.exists()
     assert "project: wolfpack" in new.read_text(encoding="utf-8")
+
+
+def test_api_get_note_full(client, tmp_path):
+    write_note(Note(title="Wolf A", status="raw", body="The body text"), tmp_path)
+    r = client.get("/api/notes/00%20Inbox/wolf-a.md")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["title"] == "Wolf A"
+    assert d["body"] == "The body text"
+
+
+def test_api_get_note_missing_404(client):
+    assert client.get("/api/notes/nope.md").status_code == 404
+
+
+def test_panel_note_editor(client, tmp_path):
+    write_note(Note(title="Wolf A", status="raw", body="Body here"), tmp_path)
+    r = client.get("/panel/note/00%20Inbox/wolf-a.md")
+    assert r.status_code == 200
+    assert "Body here" in r.text
+    assert 'name="title"' in r.text
+
+
+def test_panel_project_dashboard(client, tmp_path):
+    write_note(Note(title="Wolf A", status="raw", project="wolfpack"), tmp_path)
+    write_note(Note(title="Wolf B", status="processed", project="wolfpack"), tmp_path)
+    r = client.get("/panel/project/wolfpack")
+    assert r.status_code == 200
+    assert "Wolf A" in r.text
+    assert "Wolf B" in r.text
+    assert "2" in r.text  # total notes
