@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HowlForge · vault</title>
+  <title>HowlForge | vault</title>
   <style>
     :root { --bg:#16181d; --panel:#1e2128; --border:#2b2f38; --text:#e6e8eb;
             --muted:#9aa0aa; --accent:#d97757; }
@@ -67,7 +67,7 @@
     <h1>HowlForge</h1>
     <span class="muted" style="margin-left:auto">
       {{ notes|length }} {{ ui.notes_count }}
-      {% if auth_enabled %} · <a href="/logout" style="color:var(--muted)">{{ ui.logout }}</a>{% endif %}
+      {% if auth_enabled %} | <a href="/logout" style="color:var(--muted)">{{ ui.logout }}</a>{% endif %}
     </span>
   </header>
   <main>
@@ -83,7 +83,7 @@
         <textarea name="text" rows="2" placeholder="{{ ui.add_idea_hint }}" required></textarea>
         <div class="addrow">
           <select name="project">
-            <option value="">— {{ ui.no_project }} —</option>
+            <option value="">({{ ui.no_project }})</option>
             {% for p in projects %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
           </select>
           <select name="category">
@@ -157,13 +157,13 @@
             <td class="titlecell">
               <span class="t"><a class="notelink" href="/panel/note/{{ n.path }}" title="{{ n.title }}">{{ n.title }}</a></span>
               <div class="muted">
-                {{ n.type }}{% if n.generated %} · <span class="tag">AI</span>{% endif %}
+                {{ n.type }}{% if n.generated %} | <span class="tag">AI</span>{% endif %}
                 {% for t in (n.tags or [])[:3] %}<span class="tag">{{ t }}</span>{% endfor %}
               </div>
             </td>
             <td>
               <select class="project" data-path="{{ n.path }}" data-field="project">
-                <option value="">— {{ ui.none }} —</option>
+                <option value="">({{ ui.none }})</option>
                 {% for p in projects %}
                 <option value="{{ p }}" {% if p == n.project %}selected{% endif %}>{{ p }}</option>
                 {% endfor %}

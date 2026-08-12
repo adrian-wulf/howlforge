@@ -45,7 +45,7 @@
           <input type="text" name="title" value="{{ note.title }}">
           <label>{{ ui.col_project }}</label>
           <select name="project">
-            <option value="">— {{ ui.none }} —</option>
+            <option value="">({{ ui.none }})</option>
             {% for p in projects %}<option value="{{ p }}" {% if p == note.project %}selected{% endif %}>{{ p }}</option>{% endfor %}
           </select>
         </div>

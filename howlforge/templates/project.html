@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ slug }} · HowlForge</title>
+  <title>{{ slug }} | HowlForge</title>
   <style>
     :root { --bg:#16181d; --panel:#1e2128; --border:#2b2f38; --text:#e6e8eb;
             --muted:#9aa0aa; --accent:#d97757; }
@@ -79,7 +79,7 @@
       {% for n in notes %}
       <div class="note">
         <a href="/panel/note/{{ n.path }}">{{ n.title }}</a>
-        <span class="muted">{{ n.status }} · {{ n.category }}{% if n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %} · {{ n.created[:10] }}</span>
+        <span class="muted">{{ n.status }} | {{ n.category }}{% if n.subcategory != 'none' %}/{{ n.subcategory }}{% endif %} | {{ n.created[:10] }}</span>
       </div>
       {% endfor %}
       {% else %}

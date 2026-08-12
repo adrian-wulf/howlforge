@@ -106,12 +106,12 @@ def reply_text(result: CaptureResult, lang: str) -> str:
     path = result.path
     if lang == "pl":
         return (
-            f"✅ Zapisano: **{note.title}**\n"
+            f"Zapisano: **{note.title}**\n"
             f"Trafiło do: `{path}`\n"
-            f"Typ: `{note.type}` · Kategoria: `{note.category}/{note.subcategory}`"
+            f"Typ: `{note.type}` | Kategoria: `{note.category}/{note.subcategory}`"
         )
     return (
-        f"✅ Saved: **{note.title}**\n"
+        f"Saved: **{note.title}**\n"
         f"Filed under: `{path}`\n"
-        f"Type: `{note.type}` · Category: `{note.category}/{note.subcategory}`"
+        f"Type: `{note.type}` | Category: `{note.category}/{note.subcategory}`"
     )
