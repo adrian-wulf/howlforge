@@ -2,11 +2,16 @@
 
 Features:
 * Optional owner whitelist (``TELEGRAM_CHAT_ID`` / ``TELEGRAM_CHAT_IDS``).
-* Reply-keyboard menu and a guided flow:
-    Add idea -> pick project -> pick category -> type the note
+* Reply-keyboard menu with a guided flow:
+    Add idea -> (project) -> category -> type the note
     New project -> type the name
     New category -> type name and subcategories
-* Free-text messages are auto-routed (AI classify if possible, else manual).
+    Project -> set a default project (every idea then goes to it)
+    Language -> toggle PL/EN
+* The chosen language and default project are persisted per user in the vault
+  (``.howlforge/bot_state.json``), so they survive restarts.
+* Free-text messages are auto-routed (AI classify if possible, else manual) and
+  assigned to the default project when one is set.
 
 Run with::
 
@@ -25,6 +30,7 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
+from . import bot_state
 from . import categories as categories_mod
 from .capture import CaptureError, capture, capture_manual, reply_text
 from .config import Settings, get_settings
@@ -35,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
-# Per-chat flow state: chat_id -> {"step", "project", "category", "lang"}
+# Transient per-chat flow state (current step / chosen project / chosen category).
 _flows: Dict[int, Dict[str, object]] = {}
 
 
@@ -57,17 +63,17 @@ def _is_allowed(message: Message, settings: Settings) -> bool:
     return str(message.chat.id) in allowed or str(message.from_user.id) in allowed
 
 
-def _lang(message: Message) -> str:
-    flow = _flows.get(message.chat.id)
-    if flow and flow.get("lang"):
-        return str(flow["lang"])
-    return normalize_lang(get_settings().language)
+def _lang(message: Message, settings: Settings) -> str:
+    default = normalize_lang(settings.language)
+    return bot_state.lang_of(settings.vault_path, message.chat.id, default)
+
+
+def _default_project(message: Message, settings: Settings) -> str | None:
+    return bot_state.project_of(settings.vault_path, message.chat.id)
 
 
 def _set_flow(message: Message, **kwargs: object) -> None:
-    flow = _flows.setdefault(message.chat.id, {})
-    flow.update(kwargs)
-    flow.setdefault("lang", normalize_lang(get_settings().language))
+    _flows.setdefault(message.chat.id, {}).update(kwargs)
 
 
 def _clear_flow(message: Message) -> None:
@@ -80,19 +86,26 @@ def _L(lang: str, en: str, pl: str) -> str:
 
 def _menu(lang: str) -> ReplyKeyboardMarkup:
     labels = (
-        [["Add idea", "New project"], ["New category", "Language"], ["Help"]]
+        [["Add idea", "New project"], ["New category", "Project"], ["Language", "Help"]]
         if lang == "en"
-        else [["Dodaj pomysł", "Nowy projekt"], ["Nowa kategoria", "Język"], ["Pomoc"]]
+        else [
+            ["Dodaj pomysł", "Nowy projekt"],
+            ["Nowa kategoria", "Projekt"],
+            ["Język", "Pomoc"],
+        ]
     )
     kb = [[KeyboardButton(text=t) for t in row] for row in labels]
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 
-def _project_menu(projects: list[str], lang: str) -> ReplyKeyboardMarkup:
+def _project_menu(
+    projects: list[str], lang: str, with_no_project: bool = True
+) -> ReplyKeyboardMarkup:
     no_project = _L(lang, "No project", "Brak projektu")
     cancel = _L(lang, "Cancel", "Anuluj")
     rows = [[KeyboardButton(text=p)] for p in projects]
-    rows.append([KeyboardButton(text=no_project)])
+    if with_no_project:
+        rows.append([KeyboardButton(text=no_project)])
     rows.append([KeyboardButton(text=cancel)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
 
@@ -116,15 +129,23 @@ def _help_text(lang: str) -> str:
         return (
             "HowlForge\n"
             "Send any thought and I'll classify and save it.\n"
-            "Buttons: Add idea / New project / New category.\n"
+            "Buttons: Add idea / New project / New category / Project / Language.\n"
             "Commands: /help, /lang, /newcat Name sub1,sub2, /cancel"
         )
     return (
         "HowlForge\n"
         "Wyślij dowolną myśl, a ja ją sklasyfikuję i zapiszę.\n"
-        "Przyciski: Dodaj pomysł / Nowy projekt / Nowa kategoria.\n"
+        "Przyciski: Dodaj pomysł / Nowy projekt / Nowa kategoria / Projekt / Język.\n"
         "Komendy: /help, /lang, /newcat Nazwa pod1,pod2, /cancel"
     )
+
+
+def _current_status(message: Message, settings: Settings) -> str:
+    lang = _lang(message, settings)
+    project = _default_project(message, settings)
+    if lang == "en":
+        return f"Language: {lang} | Default project: {project or 'none'}"
+    return f"Język: {lang} | Domyślny projekt: {project or 'brak'}"
 
 
 @router.message(CommandStart())
@@ -133,37 +154,53 @@ async def on_start(message: Message) -> None:
     if not _is_allowed(message, settings):
         return
     _clear_flow(message)
-    await message.answer(_help_text(_lang(message)), reply_markup=_menu(_lang(message)))
+    await message.answer(
+        _help_text(_lang(message, settings)), reply_markup=_menu(_lang(message, settings))
+    )
 
 
 @router.message(Command("help"))
 async def on_help(message: Message) -> None:
-    if not _is_allowed(message, get_settings()):
+    settings = get_settings()
+    if not _is_allowed(message, settings):
         return
-    await message.answer(_help_text(_lang(message)), reply_markup=_menu(_lang(message)))
+    await message.answer(
+        _help_text(_lang(message, settings)), reply_markup=_menu(_lang(message, settings))
+    )
+
+
+@router.message(Command("status"))
+async def on_status(message: Message) -> None:
+    settings = get_settings()
+    if not _is_allowed(message, settings):
+        return
+    await message.answer(_current_status(message, settings))
 
 
 @router.message(Command("cancel"))
 async def on_cancel(message: Message) -> None:
-    if not _is_allowed(message, get_settings()):
+    settings = get_settings()
+    if not _is_allowed(message, settings):
         return
     _clear_flow(message)
-    await message.answer(_help_text(_lang(message)), reply_markup=_menu(_lang(message)))
+    await message.answer(
+        _help_text(_lang(message, settings)), reply_markup=_menu(_lang(message, settings))
+    )
 
 
 @router.message(Command("lang"))
 async def on_lang(message: Message) -> None:
-    if not _is_allowed(message, get_settings()):
+    settings = get_settings()
+    if not _is_allowed(message, settings):
         return
-    lang = _lang(message)
-    await message.answer(f"Language: {lang}")
+    await message.answer(f"Language: {_lang(message, settings)}")
 
 
 @router.message(Command("newcat"))
 async def on_newcat(message: Message) -> None:
-    if not _is_allowed(message, get_settings()):
-        return
     settings = get_settings()
+    if not _is_allowed(message, settings):
+        return
     text = (message.text or "").removeprefix("/newcat").strip()
     if not text:
         await message.answer("Usage: /newcat CategoryName sub1,sub2")
@@ -176,7 +213,7 @@ async def on_newcat(message: Message) -> None:
     except ValueError as exc:
         await message.answer(f"Could not add category: {exc}")
         return
-    done = _L(_lang(message), "Added category", "Dodano kategorię")
+    done = _L(_lang(message, settings), "Added category", "Dodano kategorię")
     await message.answer(f"{done}: {slug}")
 
 
@@ -185,12 +222,13 @@ async def on_text(message: Message) -> None:
     settings = get_settings()
     if not _is_allowed(message, settings):
         return
-    lang = _lang(message)
+    lang = _lang(message, settings)
     text = (message.text or "").strip()
 
     add_idea = _L(lang, "Add idea", "Dodaj pomysł")
     new_project = _L(lang, "New project", "Nowy projekt")
     new_category = _L(lang, "New category", "Nowa kategoria")
+    project_btn = _L(lang, "Project", "Projekt")
     help_ = _L(lang, "Help", "Pomoc")
     lang_btn = _L(lang, "Language", "Język")
     cancel = _L(lang, "Cancel", "Anuluj")
@@ -198,10 +236,17 @@ async def on_text(message: Message) -> None:
 
     # --- Main menu buttons -------------------------------------------------
     if text == add_idea:
-        projects = list_projects(settings.vault_path)
-        _set_flow(message, step="pick_project")
-        prompt = _L(lang, "Pick a project:", "Wybierz projekt:")
-        await message.answer(prompt, reply_markup=_project_menu(projects, lang))
+        default = _default_project(message, settings)
+        if default:
+            _set_flow(message, step="pick_category", project=default)
+            cats = list(categories_mod.all_categories(settings.vault_path))
+            prompt = _L(lang, "Pick a category:", "Wybierz kategorię:")
+            await message.answer(prompt, reply_markup=_category_menu(cats, lang))
+        else:
+            projects = list_projects(settings.vault_path)
+            _set_flow(message, step="pick_project")
+            prompt = _L(lang, "Pick a project:", "Wybierz projekt:")
+            await message.answer(prompt, reply_markup=_project_menu(projects, lang))
         return
     if text == new_project:
         _set_flow(message, step="await_project")
@@ -217,13 +262,21 @@ async def on_text(message: Message) -> None:
         )
         await message.answer(prompt)
         return
+    if text == project_btn:
+        projects = list_projects(settings.vault_path)
+        _set_flow(message, step="pick_default_project")
+        prompt = _L(lang, "Pick your default project:", "Wybierz domyślny projekt:")
+        await message.answer(prompt, reply_markup=_project_menu(projects, lang))
+        return
     if text == help_:
         await message.answer(_help_text(lang), reply_markup=_menu(lang))
         return
     if text == lang_btn:
         new = "en" if lang == "pl" else "pl"
-        _set_flow(message, lang=new)
-        await message.answer(f"Language: {new}", reply_markup=_menu(new))
+        bot_state.set_user(settings.vault_path, message.chat.id, lang=new)
+        await message.answer(
+            _current_status(message, settings), reply_markup=_menu(new)
+        )
         return
     if text == cancel:
         _clear_flow(message)
@@ -232,7 +285,7 @@ async def on_text(message: Message) -> None:
 
     flow = _flows.get(message.chat.id)
 
-    # --- Guided: pick project ----------------------------------------------
+    # --- Guided: pick project (for a single idea) --------------------------
     if flow and flow.get("step") == "pick_project":
         projects = list_projects(settings.vault_path)
         if text == no_project:
@@ -247,6 +300,22 @@ async def on_text(message: Message) -> None:
         cats = list(categories_mod.all_categories(settings.vault_path))
         prompt = _L(lang, "Pick a category:", "Wybierz kategorię:")
         await message.answer(prompt, reply_markup=_category_menu(cats, lang))
+        return
+
+    # --- Guided: pick default project (persistent) -------------------------
+    if flow and flow.get("step") == "pick_default_project":
+        projects = list_projects(settings.vault_path)
+        if text == no_project:
+            bot_state.set_user(settings.vault_path, message.chat.id, project="")
+        elif text in projects:
+            bot_state.set_user(settings.vault_path, message.chat.id, project=text)
+        else:
+            await message.answer(
+                _L(lang, "Unknown project, pick again.", "Nieznany projekt, wybierz ponownie.")
+            )
+            return
+        _clear_flow(message)
+        await message.answer(_current_status(message, settings), reply_markup=_menu(lang))
         return
 
     # --- Guided: pick category ---------------------------------------------
@@ -266,18 +335,14 @@ async def on_text(message: Message) -> None:
                 )
                 return
             _set_flow(message, step="await_idea", category=chosen)
-        prompt = _L(
-            lang,
-            "Now send the idea text.",
-            "Teraz napisz treść pomysłu.",
-        )
+        prompt = _L(lang, "Now send the idea text.", "Teraz napisz treść pomysłu.")
         await message.answer(prompt)
         return
 
     # --- Guided: awaiting idea text ----------------------------------------
     if flow and flow.get("step") == "await_idea":
         category = flow.get("category")
-        project = flow.get("project")
+        project = flow.get("project") or _default_project(message, settings)
         try:
             if category:
                 result = capture_manual(
@@ -322,12 +387,13 @@ async def on_text(message: Message) -> None:
         await message.answer(f"{done}: {slug}", reply_markup=_menu(lang))
         return
 
-    # --- Free text: auto-route ---------------------------------------------
+    # --- Free text: auto-route (assigned to default project) ---------------
+    project = _default_project(message, settings)
     try:
-        result = capture(text, settings)
+        result = capture(text, settings, project=project)
     except CaptureError:
         try:
-            result = capture_manual(text, settings)
+            result = capture_manual(text, settings, project=project)
         except CaptureError as exc:
             await message.answer(f"{_L(lang, 'Problem', 'Problem')}: {exc}")
             return
