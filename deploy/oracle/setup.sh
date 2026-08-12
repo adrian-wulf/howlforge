@@ -56,6 +56,8 @@ else
 fi
 
 mkdir -p vault
+# Ensure the vault is owned by the current user (not root), so local edits work.
+chown -R "$(id -u)":"$(id -g)" vault 2>/dev/null || true
 
 say "Building and starting services (api + bot)..."
 sudo -E env "PATH=$PATH" $COMPOSE -f deploy/oracle/docker-compose.prod.yml up -d --build

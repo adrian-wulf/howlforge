@@ -37,7 +37,8 @@ lint: install ## Lint with ruff
 doctor: install ## Show config / LLM models / vault
 	$(PYTHON) -m howlforge.cli doctor
 
-up: ## Start everything via Docker Compose
+up: ## Start everything via Docker Compose (creates vault first)
+	@mkdir -p vault
 	docker compose up --build -d
 
 down: ## Stop Docker Compose services

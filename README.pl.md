@@ -114,11 +114,23 @@ bot ignoruje wszystkich innych.
 TELEGRAM_CHAT_IDS=123456789,987654321
 ```
 
-Komendy: `/help`, `/lang`, `/newcat Nazwa pod1,pod2`, `/cancel`.
+Komendy: `/help`, `/lang`, `/newcat Nazwa pod1,pod2`, `/status`, `/cancel`.
 
-Bot pokazuje klawiaturę: **Dodaj pomysł** (wybierz kategorię, potem napisz notatkę),
-**Nowa kategoria**, **Pomoc**, **Język**. Albo po prostu napisz wiadomość - bot sam ją
-sklasyfikuje i zapisze.
+Klawiatura ma sześć przycisków:
+
+| Przycisk | Co robi |
+|---|---|
+| **Dodaj pomysł** | Prowadzony zapis: wybierz projekt -> wybierz kategorię -> napisz notatkę |
+| **Nowy projekt** | Tworzy folder projektu |
+| **Nowa kategoria** | Dodaje kategorię notatek (z podkategoriami) |
+| **Projekt** | Ustawia **domyślny projekt** - każdy pomysł trafia do niego automatycznie |
+| **Język** | Przełącza PL/EN |
+| **Pomoc** | Pokazuje pomoc |
+
+Wybrany **język** i **domyślny projekt** są zapisywane per użytkownik w
+`<vault>/.howlforge/bot_state.json`, więc przetrwają restart bota. Po prostu napisz
+wiadomość, a bot sam ją obsłuży (klasyfikacja AI lub ręcznie, gdy brak klucza),
+przypisując ją do domyślnego projektu, jeśli jest ustawiony.
 
 ### Panel web + API
 
@@ -223,6 +235,20 @@ deploy/oracle/      deploy na VPS (setup.sh + compose produkcyjny)
 - [x] Wyszukiwanie semantyczne
 - [x] Eksport JSON/CSV
 - [x] Autoryzacja panelu + deploy na VPS
+
+## Rozwiązywanie problemów
+
+**Uprawnienia vaulta.** Jeśli uruchamiasz przez Docker (`make up`) i potem nie możesz
+zapisywać notatek lokalnie, folder `vault/` został prawdopodobnie utworzony przez
+Docker jako `root`. Napraw raz:
+
+```bash
+sudo chown -R "$USER":"$USER" vault
+howlforge init
+```
+
+Cel `up` w Makefile oraz `deploy/oracle/setup.sh` już tworzą `vault/` dla Twojego
+użytkownika, żeby temu zapobiec.
 
 ## Licencja
 

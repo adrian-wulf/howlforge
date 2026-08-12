@@ -114,10 +114,23 @@ ignores everyone else.
 TELEGRAM_CHAT_IDS=123456789,987654321
 ```
 
-Commands: `/help`, `/lang`, `/newcat Name sub1,sub2`, `/cancel`.
+Commands: `/help`, `/lang`, `/newcat Name sub1,sub2`, `/status`, `/cancel`.
 
-The bot shows a reply keyboard: **Add idea** (pick a category, then type the note),
-**New category**, **Help**, **Language**. Or just type a message and it auto-routes.
+The reply keyboard has six buttons:
+
+| Button | What it does |
+|---|---|
+| **Add idea** | Guided capture: pick project -> pick category -> type the note |
+| **New project** | Create a project folder |
+| **New category** | Add a note category (with subcategories) |
+| **Project** | Set a **default project** - every idea then goes to it automatically |
+| **Language** | Toggle PL/EN |
+| **Help** | Show help |
+
+The chosen **language** and **default project** are saved per user in
+`<vault>/.howlforge/bot_state.json`, so they survive bot restarts. Just type a
+message and the bot auto-routes it (AI classify, or manual if no key), assigning
+it to your default project when one is set.
 
 ### Web panel + API
 
@@ -221,6 +234,19 @@ deploy/oracle/      VPS deploy (setup.sh + production compose)
 - [x] Semantic search
 - [x] JSON/CSV export
 - [x] Panel auth + VPS deploy
+
+## Troubleshooting
+
+**Vault permissions.** If you run via Docker (`make up`) and later can't write notes
+locally, the `vault/` folder was likely created by Docker as `root`. Fix it once:
+
+```bash
+sudo chown -R "$USER":"$USER" vault
+howlforge init
+```
+
+The `Makefile` `up` target and `deploy/oracle/setup.sh` already create `vault/`
+for your user to prevent this.
 
 ## License
 
