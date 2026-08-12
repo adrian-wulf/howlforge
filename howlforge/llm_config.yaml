@@ -1,0 +1,23 @@
+# ============ HowlForge model list (LiteLLM) ============
+# Multiple entries with the same `model_name` enable automatic failover:
+# if the first provider fails, LiteLLM tries the next one.
+#
+# Provider prefixes (litellm): nvidia_nim/, anthropic/, gemini/, openai/,
+# deepseek/, openrouter/...
+#
+# The default "howl-classify" uses NVIDIA NIM (free tier) so the tool runs at $0.
+
+model_list:
+  - model_name: howl-classify
+    litellm_params:
+      model: nvidia_nim/meta/llama-3.1-8b-instruct
+      api_key: os.environ/NVIDIA_API_KEY
+  - model_name: howl-classify
+    litellm_params:
+      model: anthropic/claude-sonnet-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # - model_name: howl-synthesize
+  #   litellm_params:
+  #     model: nvidia_nim/meta/llama-3.1-8b-instruct
+  #     api_key: os.environ/NVIDIA_API_KEY

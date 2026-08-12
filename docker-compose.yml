@@ -1,0 +1,12 @@
+services:
+  howlforge:
+    build: .
+    image: howlforge:dev
+    container_name: howlforge
+    env_file:
+      - .env
+    volumes:
+      - ./vault:/app/vault
+      - ./howlforge:/app/howlforge
+    command: ["doctor"]
+    restart: unless-stopped
