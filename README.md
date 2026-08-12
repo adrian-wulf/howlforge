@@ -179,7 +179,8 @@ Everything is customizable from the panel (or by editing files in the vault):
 The Kanban board is at `/panel/project/<slug>/board` (or click the project, then
 "Board"). Columns are **categories**; each card shows a **status** and **priority**
 badge (color + symbol). Drag cards between category columns to re-categorize, and
-filter by status and priority.
+filter by status and priority. Use the left/right arrows on a column header to
+reorder columns (saved per project).
 
 ## Deploy on a small VPS (free / cheap)
 

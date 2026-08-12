@@ -21,6 +21,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse, RedirectResponse
 
+from . import board_order
 from . import categories as categories_mod
 from . import vocab as vocab_mod
 from .capture import CaptureError, capture, capture_manual
@@ -285,7 +286,9 @@ def panel_board(request: Request, slug: str) -> Response:
     lang = settings.language
     statuses = vocab_mod.all_statuses(settings.vault_path)
     priorities = vocab_mod.all_priorities(settings.vault_path)
-    cats = list(categories_mod.all_categories(settings.vault_path))
+    cats = board_order.get_order(
+        settings.vault_path, slug, list(categories_mod.all_categories(settings.vault_path))
+    )
 
     notes = []
     for p in list_notes(settings.vault_path):
@@ -331,6 +334,19 @@ def panel_board(request: Request, slug: str) -> Response:
             "priority_symbols": _symbols(priorities),
         },
     )
+
+
+class BoardMove(BaseModel):
+    category: str = Field(..., min_length=1)
+    direction: int = Field(..., ge=-1, le=1)
+
+
+@app.post("/api/board/{slug}/move")
+def api_board_move(slug: str, req: BoardMove) -> Dict[str, object]:
+    settings = get_settings()
+    default = list(categories_mod.all_categories(settings.vault_path))
+    order = board_order.move(settings.vault_path, slug, req.category, req.direction, default)
+    return {"order": order}
 
 
 @app.get("/api/export")

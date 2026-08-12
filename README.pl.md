@@ -180,7 +180,8 @@ Wszystko można dostosować z panelu (albo edytując pliki w vaulcie):
 Tablica Kanban jest pod `/panel/project/<slug>/board` (albo wejdź w projekt i kliknij
 "Tablica"). Kolumny to **kategorie**; każda karta ma badge **statusu** i **priorytetu**
 (kolor + symbol). Przeciągaj karty między kolumnami kategorii, aby zmienić kategorię,
-i filtruj po statusie oraz priorytecie.
+i filtruj po statusie oraz priorytecie. Strzałki lewo/prawo w nagłówku kolumny
+zmieniają kolejność kolumn (zapamiętywana per projekt).
 
 ## Deploy na małym VPS (darmowo / tanio)
 

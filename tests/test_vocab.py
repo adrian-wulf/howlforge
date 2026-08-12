@@ -1,4 +1,20 @@
+from howlforge import board_order
 from howlforge import vocab as vocab_mod
+
+
+def test_move_column(tmp_path):
+    default = ["art", "gameplay", "mechanics"]
+    order = board_order.move(tmp_path, "p1", "gameplay", -1, default)
+    assert order[0] == "gameplay" and order[1] == "art"
+    # persisted
+    assert board_order.get_order(tmp_path, "p1", default) == order
+
+
+def test_move_ignores_out_of_bounds(tmp_path):
+    default = ["art", "gameplay"]
+    order = board_order.move(tmp_path, "p1", "art", -1, default)  # already first
+    assert order == ["art", "gameplay"]
+
 
 
 def test_builtin_statuses_and_priorities():
