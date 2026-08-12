@@ -171,6 +171,16 @@ def ui_strings(lang: str) -> Dict[str, str]:
         "log_in": "Log in",
         "bad_password": "Wrong password.",
         "logout": "Log out",
+        "delete": "Delete",
+        "delete_note": "Delete note",
+        "delete_project": "Delete project",
+        "delete_category": "Delete category",
+        "confirm_delete_note": "Delete this note permanently?",
+        "confirm_delete_project": "Delete this project and all its notes?",
+        "confirm_delete_category": "Delete this category?",
+        "deleted": "Deleted",
+        "categories_manage": "Categories",
+        "no_custom_categories": "No custom categories yet.",
     }
     if lang == "en":
         return en
@@ -217,4 +227,14 @@ def ui_strings(lang: str) -> Dict[str, str]:
         "log_in": "Zaloguj się",
         "bad_password": "Błędne hasło.",
         "logout": "Wyloguj",
+        "delete": "Usuń",
+        "delete_note": "Usuń notatkę",
+        "delete_project": "Usuń projekt",
+        "delete_category": "Usuń kategorię",
+        "confirm_delete_note": "Usunąć trwale tę notatkę?",
+        "confirm_delete_project": "Usunąć ten projekt i wszystkie jego notatki?",
+        "confirm_delete_category": "Usunąć tę kategorię?",
+        "deleted": "Usunięto",
+        "categories_manage": "Kategorie",
+        "no_custom_categories": "Brak własnych kategorii.",
     }

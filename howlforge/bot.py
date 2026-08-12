@@ -35,7 +35,7 @@ from . import categories as categories_mod
 from .capture import CaptureError, capture, capture_manual, reply_text
 from .config import Settings, get_settings
 from .i18n import normalize_lang
-from .vault import create_project, list_projects
+from .vault import create_project, delete_note, delete_project, list_notes, list_projects
 
 logger = logging.getLogger(__name__)
 
@@ -86,12 +86,18 @@ def _L(lang: str, en: str, pl: str) -> str:
 
 def _menu(lang: str) -> ReplyKeyboardMarkup:
     labels = (
-        [["Add idea", "New project"], ["New category", "Project"], ["Language", "Help"]]
+        [
+            ["Add idea", "New project"],
+            ["New category", "Project"],
+            ["Language", "Help"],
+            ["Delete"],
+        ]
         if lang == "en"
         else [
             ["Dodaj pomysł", "Nowy projekt"],
             ["Nowa kategoria", "Projekt"],
             ["Język", "Pomoc"],
+            ["Usuń"],
         ]
     )
     kb = [[KeyboardButton(text=t) for t in row] for row in labels]
@@ -122,6 +128,41 @@ def _category_menu(categories: list[str], lang: str) -> ReplyKeyboardMarkup:
     rows.append([KeyboardButton(text=auto)])
     rows.append([KeyboardButton(text=cancel)])
     return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+
+
+def _delete_type_menu(lang: str) -> ReplyKeyboardMarkup:
+    del_project = _L(lang, "Delete project", "Usuń projekt")
+    del_category = _L(lang, "Delete category", "Usuń kategorię")
+    del_note = _L(lang, "Delete note", "Usuń notatkę")
+    cancel = _L(lang, "Cancel", "Anuluj")
+    kb = [
+        [KeyboardButton(text=del_project), KeyboardButton(text=del_category)],
+        [KeyboardButton(text=del_note)],
+        [KeyboardButton(text=cancel)],
+    ]
+    return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+
+
+def _items_menu(items: list[str], lang: str) -> ReplyKeyboardMarkup:
+    cancel = _L(lang, "Cancel", "Anuluj")
+    rows = [[KeyboardButton(text=i)] for i in items]
+    rows.append([KeyboardButton(text=cancel)])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+
+
+def _recent_notes(settings: Settings, limit: int = 20) -> list[tuple[str, str]]:
+    """Return (title, relative_path) for the most recent notes."""
+    from .schema import Note
+
+    items: list[tuple[str, str]] = []
+    for p in list_notes(settings.vault_path):
+        try:
+            note = Note.from_markdown(p.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        items.append((note.title, str(p.relative_to(settings.vault_path))))
+    items.sort(key=lambda t: t[1])
+    return items[:limit]
 
 
 def _help_text(lang: str) -> str:
@@ -233,6 +274,10 @@ async def on_text(message: Message) -> None:
     lang_btn = _L(lang, "Language", "Język")
     cancel = _L(lang, "Cancel", "Anuluj")
     no_project = _L(lang, "No project", "Brak projektu")
+    delete_btn = _L(lang, "Delete", "Usuń")
+    del_project = _L(lang, "Delete project", "Usuń projekt")
+    del_category = _L(lang, "Delete category", "Usuń kategorię")
+    del_note = _L(lang, "Delete note", "Usuń notatkę")
 
     # --- Main menu buttons -------------------------------------------------
     if text == add_idea:
@@ -278,12 +323,84 @@ async def on_text(message: Message) -> None:
             _current_status(message, settings), reply_markup=_menu(new)
         )
         return
+    if text == delete_btn:
+        _set_flow(message, step="pick_delete")
+        prompt = _L(lang, "What do you want to delete?", "Co chcesz usunąć?")
+        await message.answer(prompt, reply_markup=_delete_type_menu(lang))
+        return
     if text == cancel:
         _clear_flow(message)
         await message.answer(_help_text(lang), reply_markup=_menu(lang))
         return
 
     flow = _flows.get(message.chat.id)
+
+    # --- Guided: pick delete type ------------------------------------------
+    if flow and flow.get("step") == "pick_delete":
+        if text == del_project:
+            _set_flow(message, step="del_project")
+            await message.answer(
+                _L(lang, "Pick a project to delete:", "Wybierz projekt do usunięcia:"),
+                reply_markup=_items_menu(list_projects(settings.vault_path), lang),
+            )
+        elif text == del_category:
+            custom = list(categories_mod.load(settings.vault_path))
+            _set_flow(message, step="del_category")
+            await message.answer(
+                _L(lang, "Pick a category to delete:", "Wybierz kategorię do usunięcia:"),
+                reply_markup=_items_menu(custom, lang),
+            )
+        elif text == del_note:
+            _set_flow(message, step="del_note")
+            titles = [t for t, _ in _recent_notes(settings)]
+            await message.answer(
+                _L(lang, "Pick a note to delete:", "Wybierz notatkę do usunięcia:"),
+                reply_markup=_items_menu(titles, lang),
+            )
+        else:
+            await message.answer(
+                _L(lang, "Unknown option, pick again.", "Nieznana opcja, wybierz ponownie.")
+            )
+        return
+
+    # --- Guided: delete project --------------------------------------------
+    if flow and flow.get("step") == "del_project":
+        count = delete_project(settings.vault_path, text)
+        _clear_flow(message)
+        done = _L(lang, "Deleted project", "Usunięto projekt")
+        await message.answer(f"{done}: {text} ({count} notes)", reply_markup=_menu(lang))
+        return
+
+    # --- Guided: delete category -------------------------------------------
+    if flow and flow.get("step") == "del_category":
+        try:
+            removed = categories_mod.remove(settings.vault_path, text)
+        except ValueError as exc:
+            await message.answer(f"{_L(lang, 'Problem', 'Problem')}: {exc}")
+            return
+        _clear_flow(message)
+        if removed:
+            done = _L(lang, "Deleted category", "Usunięto kategorię")
+        else:
+            done = _L(lang, "Not found", "Nie znaleziono")
+        await message.answer(f"{done}: {text}", reply_markup=_menu(lang))
+        return
+
+    # --- Guided: delete note -----------------------------------------------
+    if flow and flow.get("step") == "del_note":
+        target = None
+        for title, rel in _recent_notes(settings, limit=100):
+            if title == text:
+                target = rel
+                break
+        if target is None:
+            await message.answer(_L(lang, "Note not found.", "Nie znaleziono notatki."))
+            return
+        delete_note(settings.vault_path, target)
+        _clear_flow(message)
+        done = _L(lang, "Deleted note", "Usunięto notatkę")
+        await message.answer(f"{done}: {text}", reply_markup=_menu(lang))
+        return
 
     # --- Guided: pick project (for a single idea) --------------------------
     if flow and flow.get("step") == "pick_project":

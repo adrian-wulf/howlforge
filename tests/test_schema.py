@@ -1,7 +1,13 @@
 import pytest
 
 from howlforge.schema import Note
-from howlforge.vault import destination_path, update_note, write_note
+from howlforge.vault import (
+    delete_note,
+    delete_project,
+    destination_path,
+    update_note,
+    write_note,
+)
 
 
 def test_note_defaults_roundtrip():
@@ -66,4 +72,20 @@ def test_update_note_rejects_invalid_status(tmp_path):
     rel = path.relative_to(tmp_path)
     with pytest.raises(ValueError):
         update_note(tmp_path, str(rel), status="shipped")
+
+
+def test_delete_note(tmp_path):
+    path = write_note(Note(title="Wolf A", status="raw"), tmp_path)
+    rel = path.relative_to(tmp_path)
+    assert delete_note(tmp_path, str(rel)) is True
+    assert not path.exists()
+    assert delete_note(tmp_path, str(rel)) is False
+
+
+def test_delete_project_removes_folder_and_notes(tmp_path):
+    write_note(Note(title="Wolf A", type="mechanic", project="wolfpack"), tmp_path)
+    write_note(Note(title="Wolf B", type="gdd", project="wolfpack"), tmp_path)
+    count = delete_project(tmp_path, "wolfpack")
+    assert count == 2
+    assert not (tmp_path / "10 Projects" / "wolfpack").exists()
 

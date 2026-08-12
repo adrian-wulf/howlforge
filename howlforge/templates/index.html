@@ -38,8 +38,17 @@
              letter-spacing:.04em; background:var(--panel); white-space:nowrap; }
     table.notes tr:last-child td { border-bottom:none; }
     .titlecell { max-width:340px; }
+    .titleline { display:flex; align-items:center; gap:8px; }
     .titlecell .t { display:block; font-weight:600; overflow:hidden;
                     text-overflow:ellipsis; white-space:nowrap; }
+    .delnote { background:transparent; border:1px solid #8a3b3b; color:#d97f7f; padding:0 7px;
+               border-radius:6px; cursor:pointer; font-size:13px; line-height:1.4; flex:none; }
+    .delnote:hover { background:#8a3b3b; color:#fff; }
+    .delcat { background:transparent; border:1px solid #8a3b3b; color:#d97f7f; padding:2px 8px;
+              border-radius:6px; cursor:pointer; font-size:12px; }
+    .catrow { display:flex; justify-content:space-between; align-items:center;
+              padding:6px 0; border-bottom:1px solid var(--border); }
+    .catrow:last-child { border-bottom:none; }
     .notelink { color:var(--text); text-decoration:none; }
     .notelink:hover { color:var(--accent); text-decoration:underline; }
     .projects { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 16px; }
@@ -117,6 +126,20 @@
       </form>
     </section>
 
+    <section class="card">
+      <h2>{{ ui.categories_manage }}</h2>
+      {% if custom_categories %}
+      {% for name, subs in custom_categories.items() %}
+      <div class="catrow">
+        <span>{{ name }}{% if subs != ['none'] %} ({{ subs|join(', ') }}){% endif %}</span>
+        <button class="delcat" data-name="{{ name }}">{{ ui.delete_category }}</button>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="muted">{{ ui.no_custom_categories }}</div>
+      {% endif %}
+    </section>
+
     <form class="filters" method="get" action="/panel">
       <select name="project">
         <option value="">{{ ui.all_projects }}</option>
@@ -155,7 +178,10 @@
         {% for n in notes %}
           <tr>
             <td class="titlecell">
-              <span class="t"><a class="notelink" href="/panel/note/{{ n.path }}" title="{{ n.title }}">{{ n.title }}</a></span>
+              <div class="titleline">
+                <span class="t"><a class="notelink" href="/panel/note/{{ n.path }}" title="{{ n.title }}">{{ n.title }}</a></span>
+                <button class="delnote" data-path="{{ n.path }}" title="{{ ui.delete_note }}">x</button>
+              </div>
               <div class="muted">
                 {{ n.type }}{% if n.generated %} | <span class="tag">AI</span>{% endif %}
                 {% for t in (n.tags or [])[:3] %}<span class="tag">{{ t }}</span>{% endfor %}
@@ -256,6 +282,24 @@
           show('ok','{{ ui.updated }} ' + sel.dataset.field + ' -> ' + (sel.value||'{{ ui.none }}'));
           if (sel.dataset.field === 'project') setTimeout(()=>location.reload(), 600);
         } catch(e){ show('err','{{ ui.failed }}: '+e.message); }
+      });
+    });
+
+    document.querySelectorAll('.delnote').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if (!confirm('{{ ui.confirm_delete_note }}')) return;
+        const r = await fetch('/api/notes/'+encodeURIComponent(btn.dataset.path), { method:'DELETE' });
+        if (r.ok) location.reload();
+        else { const d = await r.json().catch(()=>({})); show('err', d.detail||('HTTP '+r.status)); }
+      });
+    });
+
+    document.querySelectorAll('.delcat').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if (!confirm('{{ ui.confirm_delete_category }}')) return;
+        const r = await fetch('/api/categories/'+encodeURIComponent(btn.dataset.name), { method:'DELETE' });
+        if (r.ok) location.reload();
+        else { const d = await r.json().catch(()=>({})); show('err', d.detail||('HTTP '+r.status)); }
       });
     });
   </script>

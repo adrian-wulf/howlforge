@@ -40,7 +40,8 @@
   <header>
     <a href="/panel">{{ ui.back }}</a>
     <h1 style="margin-left:8px">{{ slug }}</h1>
-    <span class="muted" style="margin-left:auto">{{ total }} {{ ui.stats }}</span>
+    <button type="button" id="deleteproj" style="margin-left:auto;background:#8a3b3b;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer">{{ ui.delete_project }}</button>
+    <span class="muted">{{ total }} {{ ui.stats }}</span>
   </header>
   <main>
     <div class="stats">
@@ -87,5 +88,14 @@
       {% endif %}
     </div>
   </main>
+  <script>
+    document.getElementById('deleteproj').addEventListener('click', async ()=>{
+      if (!confirm('{{ ui.confirm_delete_project }}')) return;
+      const slug = encodeURIComponent('{{ slug }}');
+      const r = await fetch('/api/projects/'+slug, { method:'DELETE' });
+      if (r.ok) { location.href='/panel'; }
+      else { const d = await r.json().catch(()=>({})); alert(d.detail||('HTTP '+r.status)); }
+    });
+  </script>
 </body>
 </html>

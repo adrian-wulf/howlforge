@@ -28,6 +28,7 @@
     button { background:var(--accent); color:#16181d; border:none; font-weight:600; cursor:pointer;
              border-radius:8px; padding:10px 16px; font-size:14px; }
     button.ghost { background:var(--panel); color:var(--text); border:1px solid var(--border); }
+    button.danger { background:#8a3b3b; color:#fff; border:none; }
     .meta { color:var(--muted); font-size:12px; }
   </style>
 </head>
@@ -70,6 +71,7 @@
       <div class="actions">
         <button type="submit">{{ ui.save }}</button>
         <button type="button" class="ghost" onclick="history.back()">{{ ui.cancel }}</button>
+        <button type="button" class="danger" id="deletebtn">{{ ui.delete_note }}</button>
       </div>
     </form>
   </main>
@@ -89,6 +91,14 @@
         flash.className='flash ok'; flash.textContent='{{ ui.saved }}';
         setTimeout(()=>location.reload(), 400);
       } catch(err){ flash.className='flash err'; flash.textContent='{{ ui.failed }}: '+err.message; }
+    });
+
+    document.getElementById('deletebtn').addEventListener('click', async ()=>{
+      if (!confirm('{{ ui.confirm_delete_note }}')) return;
+      const path = decodeURIComponent(location.pathname.split('/panel/note/')[1]);
+      const r = await fetch('/api/notes/'+encodeURIComponent(path), { method:'DELETE' });
+      if (r.ok) { location.href='/panel'; }
+      else { const d = await r.json().catch(()=>({})); alert(d.detail||('HTTP '+r.status)); }
     });
   </script>
 </body>

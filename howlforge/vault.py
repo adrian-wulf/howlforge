@@ -200,3 +200,34 @@ def _now_iso() -> str:
     from datetime import datetime, timezone
 
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def delete_note(vault_root: Path, relative_path: str) -> bool:
+    """Delete a note by its vault-relative path. Returns True if it was removed."""
+    root = Path(vault_root).resolve()
+    path = (root / relative_path).resolve()
+    if not path.is_relative_to(root):
+        raise ValueError("Path escapes the vault.")
+    if not path.exists() or not path.is_file():
+        return False
+    path.unlink()
+    logger.info("Deleted note -> %s", path)
+    return True
+
+
+def delete_project(vault_root: Path, slug: str) -> int:
+    """Delete a project folder and all notes inside it. Returns the number of
+    removed note files."""
+    import shutil
+
+    root = Path(vault_root).resolve()
+    slug = _slugify(slug)
+    folder = (root / "10 Projects" / slug).resolve()
+    if not folder.is_relative_to(root):
+        raise ValueError("Project path escapes the vault.")
+    if not folder.exists():
+        return 0
+    count = len([p for p in folder.rglob("*.md") if p.is_file()])
+    shutil.rmtree(folder)
+    logger.info("Deleted project '%s' (%d notes)", slug, count)
+    return count

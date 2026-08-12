@@ -58,3 +58,18 @@ def test_capture_manual_builtin_unknown_raises(tmp_path):
     settings = Settings(language="pl", vault_path=tmp_path)
     with pytest.raises(Exception):
         capture_manual("x", settings, category="nope")
+
+
+def test_remove_category(tmp_path):
+    categories_mod.add(tmp_path, "Narrative", ["Plot"])
+    assert categories_mod.remove(tmp_path, "Narrative") is True
+    assert "narrative" not in categories_mod.load(tmp_path)
+
+
+def test_remove_missing_returns_false(tmp_path):
+    assert categories_mod.remove(tmp_path, "nonexistent") is False
+
+
+def test_remove_builtin_raises(tmp_path):
+    with pytest.raises(ValueError):
+        categories_mod.remove(tmp_path, "Art")

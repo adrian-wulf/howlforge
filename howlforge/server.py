@@ -26,7 +26,15 @@ from .capture import CaptureError, capture, capture_manual
 from .config import get_settings
 from .i18n import ui_strings
 from .schema import Note
-from .vault import create_project, list_notes, list_projects, read_note, update_note
+from .vault import (
+    create_project,
+    delete_note,
+    delete_project,
+    list_notes,
+    list_projects,
+    read_note,
+    update_note,
+)
 
 app = FastAPI(title="HowlForge", version="0.1.0")
 _templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -149,6 +157,7 @@ def panel(request: Request) -> Response:
 
     projects = list_projects(settings.vault_path)
     ui = ui_strings(settings.language)
+    custom_categories = categories_mod.load(settings.vault_path)
     return _templates.TemplateResponse(
         request,
         "index.html",
@@ -158,6 +167,7 @@ def panel(request: Request) -> Response:
             "auth_enabled": bool(settings.panel_password),
             "notes": rows,
             "projects": projects,
+            "custom_categories": custom_categories,
             "statuses": vocabulary.STATUSES,
             "priorities": vocabulary.PRIORITIES,
             "categories": list(categories_mod.all_categories(settings.vault_path)),
@@ -318,6 +328,40 @@ def api_update_note(note_path: str, req: UpdateRequest) -> CaptureResponse:
         category=note.category,
         subcategory=note.subcategory,
     )
+
+
+@app.delete("/api/notes/{note_path:path}")
+def api_delete_note(note_path: str) -> Dict[str, object]:
+    settings = get_settings()
+    try:
+        removed = delete_note(settings.vault_path, note_path)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not removed:
+        raise HTTPException(status_code=404, detail="Note not found.")
+    return {"ok": True, "path": note_path}
+
+
+@app.delete("/api/projects/{slug}")
+def api_delete_project(slug: str) -> Dict[str, object]:
+    settings = get_settings()
+    try:
+        count = delete_project(settings.vault_path, slug)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"ok": True, "slug": slug, "notes_deleted": count}
+
+
+@app.delete("/api/categories/{name}")
+def api_delete_category(name: str) -> Dict[str, object]:
+    settings = get_settings()
+    try:
+        removed = categories_mod.remove(settings.vault_path, name)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not removed:
+        raise HTTPException(status_code=404, detail="Category not found.")
+    return {"ok": True, "slug": name}
 
 
 @app.get("/api/projects")

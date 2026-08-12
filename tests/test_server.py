@@ -127,6 +127,30 @@ def test_api_categories_duplicate_422(client):
     assert r.status_code == 422
 
 
+def test_api_delete_note(client, tmp_path):
+    write_note(Note(title="Wolf A", status="raw"), tmp_path)
+    r = client.delete("/api/notes/00%20Inbox/wolf-a.md")
+    assert r.status_code == 200
+    assert not (tmp_path / "00 Inbox" / "wolf-a.md").exists()
+    # second delete -> 404
+    assert client.delete("/api/notes/00%20Inbox/wolf-a.md").status_code == 404
+
+
+def test_api_delete_project(client, tmp_path):
+    write_note(Note(title="Wolf A", type="mechanic", project="wolfpack"), tmp_path)
+    r = client.delete("/api/projects/wolfpack")
+    assert r.status_code == 200
+    assert r.json()["notes_deleted"] == 1
+    assert not (tmp_path / "10 Projects" / "wolfpack").exists()
+
+
+def test_api_delete_category(client, tmp_path):
+    client.post("/api/categories", json={"name": "Narrative"})
+    r = client.delete("/api/categories/narrative")
+    assert r.status_code == 200
+    assert "narrative" not in client.get("/api/categories").json()
+
+
 def test_patch_project_moves_note(client, tmp_path):
     # a "mechanic" without a project sits in the generic Mechanics folder
     write_note(Note(title="Wolf A", status="raw", type="mechanic"), tmp_path)

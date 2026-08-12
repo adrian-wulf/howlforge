@@ -67,6 +67,23 @@ def add(vault_root: Path, name: str, subcategories: List[str] | None = None) -> 
     return name
 
 
+def remove(vault_root: Path, name: str) -> bool:
+    """Remove a custom category. Built-in categories cannot be removed.
+
+    Returns ``True`` if the category was removed, ``False`` if it did not exist.
+    Raises :class:`ValueError` for built-in categories.
+    """
+    name = _slug(name)
+    if name in vocabulary.CATEGORIES:
+        raise ValueError(f"Built-in category '{name}' cannot be removed.")
+    custom = load(vault_root)
+    if name not in custom:
+        return False
+    del custom[name]
+    save(vault_root, custom)
+    return True
+
+
 def all_categories(vault_root: Optional[Path] = None) -> Dict[str, List[str]]:
     """Return built-in categories merged with the vault's custom categories."""
     merged = dict(vocabulary.CATEGORIES)
