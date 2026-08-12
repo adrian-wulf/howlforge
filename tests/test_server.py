@@ -151,6 +151,32 @@ def test_api_delete_category(client, tmp_path):
     assert "narrative" not in client.get("/api/categories").json()
 
 
+def test_api_vocab_and_add_status(client, tmp_path):
+    v = client.get("/api/vocab").json()
+    assert "statuses" in v and "priorities" in v
+    r = client.post(
+        "/api/statuses", json={"key": "Shipped", "label_en": "Shipped", "label_pl": "Wydane"}
+    )
+    assert r.status_code == 200
+    assert r.json()["key"] == "shipped"
+    keys = [s["key"] for s in client.get("/api/vocab").json()["statuses"]]
+    assert "shipped" in keys
+
+
+def test_api_delete_status(client, tmp_path):
+    client.post("/api/statuses", json={"key": "shipped"})
+    assert client.delete("/api/statuses/shipped").status_code == 200
+    assert client.delete("/api/statuses/shipped").status_code == 404
+
+
+def test_panel_board_renders(client, tmp_path):
+    write_note(Note(title="Wolf A", status="raw", project="wolfpack"), tmp_path)
+    r = client.get("/panel/project/wolfpack/board")
+    assert r.status_code == 200
+    assert "Wolf A" in r.text
+    assert "Tablica" in r.text or "Board" in r.text
+
+
 def test_patch_project_moves_note(client, tmp_path):
     # a "mechanic" without a project sits in the generic Mechanics folder
     write_note(Note(title="Wolf A", status="raw", type="mechanic"), tmp_path)

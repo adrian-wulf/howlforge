@@ -140,6 +140,40 @@
       {% endif %}
     </section>
 
+    <section class="card">
+      <h2>{{ ui.statuses }}</h2>
+      <form class="addrow" data-vocab="statuses">
+        <input name="key" placeholder="{{ ui.status_name_hint }}" required>
+        <input name="label_pl" placeholder="{{ ui.label_pl }}">
+        <input name="label_en" placeholder="{{ ui.label_en }}">
+        <input name="color" placeholder="{{ ui.color }}" type="color" style="width:44px;padding:2px">
+        <button type="submit">{{ ui.add }}</button>
+      </form>
+      {% for s in custom_statuses %}
+      <div class="catrow">
+        <span><span class="dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ s.color }}"></span> {{ s.key }} ({{ s.label_pl }})</span>
+        <button class="delstatus" data-key="{{ s.key }}">{{ ui.delete_status }}</button>
+      </div>
+      {% endfor %}
+    </section>
+
+    <section class="card">
+      <h2>{{ ui.priorities }}</h2>
+      <form class="addrow" data-vocab="priorities">
+        <input name="key" placeholder="{{ ui.priority_name_hint }}" required>
+        <input name="label_pl" placeholder="{{ ui.label_pl }}">
+        <input name="label_en" placeholder="{{ ui.label_en }}">
+        <input name="color" placeholder="{{ ui.color }}" type="color" style="width:44px;padding:2px">
+        <button type="submit">{{ ui.add }}</button>
+      </form>
+      {% for p in custom_priorities %}
+      <div class="catrow">
+        <span><span class="dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ p.color }}"></span> {{ p.key }} ({{ p.label_pl }})</span>
+        <button class="delpriority" data-key="{{ p.key }}">{{ ui.delete_priority }}</button>
+      </div>
+      {% endfor %}
+    </section>
+
     <form class="filters" method="get" action="/panel">
       <select name="project">
         <option value="">{{ ui.all_projects }}</option>
@@ -298,6 +332,36 @@
       btn.addEventListener('click', async ()=>{
         if (!confirm('{{ ui.confirm_delete_category }}')) return;
         const r = await fetch('/api/categories/'+encodeURIComponent(btn.dataset.name), { method:'DELETE' });
+        if (r.ok) location.reload();
+        else { const d = await r.json().catch(()=>({})); show('err', d.detail||('HTTP '+r.status)); }
+      });
+    });
+
+    document.querySelectorAll('form[data-vocab]').forEach(form=>{
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const fd = new FormData(form);
+        const kind = form.dataset.vocab;
+        const body = { key: fd.get('key'), label_pl: fd.get('label_pl'), label_en: fd.get('label_en'), color: fd.get('color') };
+        const r = await fetch('/api/'+kind, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        if (r.ok) location.reload();
+        else { const d = await r.json().catch(()=>({})); show('err', d.detail||('HTTP '+r.status)); }
+      });
+    });
+
+    document.querySelectorAll('.delstatus').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if (!confirm('{{ ui.confirm_delete_note }}')) return;
+        const r = await fetch('/api/statuses/'+encodeURIComponent(btn.dataset.key), { method:'DELETE' });
+        if (r.ok) location.reload();
+        else { const d = await r.json().catch(()=>({})); show('err', d.detail||('HTTP '+r.status)); }
+      });
+    });
+
+    document.querySelectorAll('.delpriority').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if (!confirm('{{ ui.confirm_delete_note }}')) return;
+        const r = await fetch('/api/priorities/'+encodeURIComponent(btn.dataset.key), { method:'DELETE' });
         if (r.ok) location.reload();
         else { const d = await r.json().catch(()=>({})); show('err', d.detail||('HTTP '+r.status)); }
       });

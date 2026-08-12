@@ -56,13 +56,20 @@ class Note:
         "updated",
     ]
 
-    def validate(self, categories: Optional[Dict[str, List[str]]] = None) -> List[str]:
+    def validate(
+        self,
+        categories: Optional[Dict[str, List[str]]] = None,
+        statuses: Optional[List[str]] = None,
+        priorities: Optional[List[str]] = None,
+    ) -> List[str]:
         """Return a list of human-readable errors; empty means valid.
 
-        ``categories`` is the merged category map (defaults + custom). When omitted
-        only the built-in vocabulary is used.
+        ``categories``, ``statuses`` and ``priorities`` are the merged vocab (built-in
+        + custom). When omitted only the built-in vocabulary is used.
         """
         cats = categories or vocabulary.CATEGORIES
+        status_keys = statuses or vocabulary.STATUSES
+        priority_keys = priorities or vocabulary.PRIORITIES
         errors: List[str] = []
         if not vocabulary.is_valid_type(self.type):
             errors.append(f"type: '{self.type}' is not allowed")
@@ -72,9 +79,9 @@ class Note:
             errors.append(
                 f"subcategory '{self.subcategory}' is not allowed for category '{self.category}'"
             )
-        if not vocabulary.is_valid_status(self.status):
+        if self.status not in status_keys:
             errors.append(f"status: '{self.status}' is not allowed")
-        if not vocabulary.is_valid_priority(self.priority):
+        if self.priority not in priority_keys:
             errors.append(f"priority: '{self.priority}' is not allowed")
         if not self.title.strip():
             errors.append("title is empty")

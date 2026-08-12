@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 from . import categories as categories_mod
+from . import vocab as vocab_mod
 from .classify import ClassifyError, classify
 from .config import Settings
 from .i18n import normalize_lang
@@ -74,7 +75,9 @@ def capture_manual(
         language=normalize_lang(settings.language),
     )
     cats = categories_mod.all_categories(settings.vault_path)
-    errors = note.validate(cats)
+    statuses = vocab_mod.status_keys(settings.vault_path)
+    priorities = vocab_mod.priority_keys(settings.vault_path)
+    errors = note.validate(cats, statuses, priorities)
     if errors:
         raise CaptureError("; ".join(errors))
     path = write_note(note, settings.vault_path)
@@ -99,8 +102,17 @@ def capture(
     client = client or LLMClient(settings.llm_config, settings.llm_model)
     lang = normalize_lang(settings.language)
     cats = categories_mod.all_categories(settings.vault_path)
+    statuses = vocab_mod.status_keys(settings.vault_path)
+    priorities = vocab_mod.priority_keys(settings.vault_path)
     try:
-        note = classify(text, client, lang, categories=cats)
+        note = classify(
+            text,
+            client,
+            lang,
+            categories=cats,
+            statuses=statuses,
+            priorities=priorities,
+        )
     except (LLMError, ClassifyError) as exc:
         raise CaptureError(str(exc)) from exc
     if project is not None:

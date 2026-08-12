@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse, RedirectResponse
 
 from . import categories as categories_mod
+from . import vocab as vocab_mod
 from .capture import CaptureError, capture, capture_manual
 from .config import get_settings
 from .i18n import ui_strings
@@ -158,6 +159,7 @@ def panel(request: Request) -> Response:
     projects = list_projects(settings.vault_path)
     ui = ui_strings(settings.language)
     custom_categories = categories_mod.load(settings.vault_path)
+    custom_vocab = vocab_mod.load(settings.vault_path)
     return _templates.TemplateResponse(
         request,
         "index.html",
@@ -168,6 +170,8 @@ def panel(request: Request) -> Response:
             "notes": rows,
             "projects": projects,
             "custom_categories": custom_categories,
+            "custom_statuses": custom_vocab.get("statuses", []),
+            "custom_priorities": custom_vocab.get("priorities", []),
             "statuses": vocabulary.STATUSES,
             "priorities": vocabulary.PRIORITIES,
             "categories": list(categories_mod.all_categories(settings.vault_path)),
@@ -274,6 +278,56 @@ def panel_project(request: Request, slug: str) -> Response:
     )
 
 
+@app.get("/panel/project/{slug}/board")
+def panel_board(request: Request, slug: str) -> Response:
+    settings = get_settings()
+    ui = ui_strings(settings.language)
+    lang = settings.language
+    statuses = vocab_mod.all_statuses(settings.vault_path)
+    priorities = vocab_mod.all_priorities(settings.vault_path)
+    cats = list(categories_mod.all_categories(settings.vault_path))
+
+    notes = []
+    for p in list_notes(settings.vault_path):
+        note = Note.from_markdown(p.read_text(encoding="utf-8"))
+        if (note.project or "") != slug:
+            continue
+        notes.append(
+            {
+                "path": str(p.relative_to(settings.vault_path)),
+                "title": note.title,
+                "status": note.status,
+                "priority": note.priority,
+                "category": note.category,
+                "subcategory": note.subcategory,
+            }
+        )
+
+    def _labels(entries: list[dict]) -> dict:
+        return {e["key"]: e.get(f"label_{lang}") or e["key"] for e in entries}
+
+    def _colors(entries: list[dict]) -> dict:
+        return {e["key"]: e.get("color") or "#9aa0aa" for e in entries}
+
+    return _templates.TemplateResponse(
+        request,
+        "board.html",
+        {
+            "request": request,
+            "ui": ui,
+            "slug": slug,
+            "notes": notes,
+            "statuses": statuses,
+            "priorities": priorities,
+            "categories": cats,
+            "status_labels": _labels(statuses),
+            "priority_labels": _labels(priorities),
+            "status_colors": _colors(statuses),
+            "priority_colors": _colors(priorities),
+        },
+    )
+
+
 @app.get("/api/export")
 def api_export(fmt: str = "json", project: Optional[str] = None) -> Response:
     from .export import generate
@@ -362,6 +416,66 @@ def api_delete_category(name: str) -> Dict[str, object]:
     if not removed:
         raise HTTPException(status_code=404, detail="Category not found.")
     return {"ok": True, "slug": name}
+
+
+class VocabEntry(BaseModel):
+    key: str = Field(..., min_length=1)
+    label_en: Optional[str] = None
+    label_pl: Optional[str] = None
+    color: Optional[str] = None
+
+
+@app.get("/api/vocab")
+def api_vocab() -> Dict[str, object]:
+    settings = get_settings()
+    return {
+        "statuses": vocab_mod.all_statuses(settings.vault_path),
+        "priorities": vocab_mod.all_priorities(settings.vault_path),
+    }
+
+
+@app.post("/api/statuses")
+def api_add_status(req: VocabEntry) -> Dict[str, object]:
+    try:
+        slug = vocab_mod.add_status(
+            get_settings().vault_path, req.key, req.label_en, req.label_pl, req.color
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"key": slug}
+
+
+@app.delete("/api/statuses/{key}")
+def api_delete_status(key: str) -> Dict[str, object]:
+    try:
+        removed = vocab_mod.remove(get_settings().vault_path, "statuses", key)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not removed:
+        raise HTTPException(status_code=404, detail="Status not found.")
+    return {"ok": True}
+
+
+@app.post("/api/priorities")
+def api_add_priority(req: VocabEntry) -> Dict[str, object]:
+    try:
+        slug = vocab_mod.add_priority(
+            get_settings().vault_path, req.key, req.label_en, req.label_pl, req.color
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"key": slug}
+
+
+@app.delete("/api/priorities/{key}")
+def api_delete_priority(key: str) -> Dict[str, object]:
+    try:
+        removed = vocab_mod.remove(get_settings().vault_path, "priorities", key)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not removed:
+        raise HTTPException(status_code=404, detail="Priority not found.")
+    return {"ok": True}
 
 
 @app.get("/api/projects")

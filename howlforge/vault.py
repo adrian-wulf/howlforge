@@ -142,6 +142,10 @@ def update_note(
         raise FileNotFoundError(f"No such note: {relative_path}")
 
     note = Note.from_markdown(path.read_text(encoding="utf-8"))
+    from . import vocab as vocab_mod
+
+    valid_statuses = vocab_mod.status_keys(root)
+    valid_priorities = vocab_mod.priority_keys(root)
     project_changed = False
     if project is not None:
         new_slug = _slugify(project)
@@ -149,11 +153,11 @@ def update_note(
             note.project = new_slug or None
             project_changed = True
     if status is not None:
-        if not _status_valid(status):
+        if status not in valid_statuses:
             raise ValueError(f"Invalid status: {status}")
         note.status = status
     if priority is not None:
-        if not _priority_valid(priority):
+        if priority not in valid_priorities:
             raise ValueError(f"Invalid priority: {priority}")
         note.priority = priority
     if title is not None:
@@ -182,18 +186,6 @@ def update_note(
     path.write_text(note.to_markdown(), encoding="utf-8")
     logger.info("Updated note -> %s", path)
     return note
-
-
-def _status_valid(value: str) -> bool:
-    from . import vocabulary
-
-    return vocabulary.is_valid_status(value)
-
-
-def _priority_valid(value: str) -> bool:
-    from . import vocabulary
-
-    return vocabulary.is_valid_priority(value)
 
 
 def _now_iso() -> str:

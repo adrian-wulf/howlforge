@@ -28,13 +28,18 @@ class ClassifyError(RuntimeError):
     """Raised when the LLM output cannot be turned into a valid note."""
 
 
-def _build_context(lang: str, categories: Optional[Dict[str, List[str]]] = None) -> Dict[str, str]:
+def _build_context(
+    lang: str,
+    categories: Optional[Dict[str, List[str]]] = None,
+    statuses: Optional[List[str]] = None,
+    priorities: Optional[List[str]] = None,
+) -> Dict[str, str]:
     cats = categories or vocabulary.CATEGORIES
     rendered = ", ".join(f"{cat}({', '.join(subs)})" for cat, subs in cats.items())
     return {
         "types": ", ".join(vocabulary.NOTE_TYPES),
-        "statuses": ", ".join(vocabulary.STATUSES),
-        "priorities": ", ".join(vocabulary.PRIORITIES),
+        "statuses": ", ".join(statuses or vocabulary.STATUSES),
+        "priorities": ", ".join(priorities or vocabulary.PRIORITIES),
         "categories": rendered,
         "language": "English" if lang == "en" else "polski",
         "raw_text": "",
@@ -45,10 +50,12 @@ def build_prompt(
     raw_text: str,
     lang: str,
     categories: Optional[Dict[str, List[str]]] = None,
+    statuses: Optional[List[str]] = None,
+    priorities: Optional[List[str]] = None,
 ) -> str:
     lang = normalize_lang(lang)
     template = _PROMPTS.get_template(f"classify_{lang}.j2")
-    ctx = _build_context(lang, categories)
+    ctx = _build_context(lang, categories, statuses, priorities)
     ctx["raw_text"] = raw_text
     return template.render(**ctx)
 
@@ -57,6 +64,8 @@ def build_messages(
     raw_text: str,
     lang: str,
     categories: Optional[Dict[str, List[str]]] = None,
+    statuses: Optional[List[str]] = None,
+    priorities: Optional[List[str]] = None,
 ) -> List[Dict[str, str]]:
     lang = normalize_lang(lang)
     system = (
@@ -69,7 +78,7 @@ def build_messages(
     )
     return [
         {"role": "system", "content": system},
-        {"role": "user", "content": build_prompt(raw_text, lang, categories)},
+        {"role": "user", "content": build_prompt(raw_text, lang, categories, statuses, priorities)},
     ]
 
 
@@ -103,21 +112,23 @@ def data_to_note(
     data: Dict[str, Any],
     lang: str,
     categories: Optional[Dict[str, List[str]]] = None,
+    statuses: Optional[List[str]] = None,
+    priorities: Optional[List[str]] = None,
 ) -> Note:
     """Map validated LLM JSON onto a Note, coercing bad enums to safe defaults."""
     lang = normalize_lang(lang)
     cats = categories or vocabulary.CATEGORIES
+    status_keys = statuses or vocabulary.STATUSES
+    priority_keys = priorities or vocabulary.PRIORITIES
     note = Note()
 
     note.type = data.get("type") if data.get("type") in vocabulary.NOTE_TYPES else "idea"
     note.category = data.get("category") if data.get("category") in cats else "misc"
     sub = data.get("subcategory", "none")
     note.subcategory = sub if sub in cats.get(note.category, []) else "none"
-    note.status = (
-        data.get("status") if data.get("status") in vocabulary.STATUSES else "raw"
-    )
+    note.status = data.get("status") if data.get("status") in status_keys else "raw"
     note.priority = (
-        data.get("priority") if data.get("priority") in vocabulary.PRIORITIES else "backlog"
+        data.get("priority") if data.get("priority") in priority_keys else "backlog"
     )
     note.tags = [
         _slugify(t) for t in (data.get("tags") or []) if isinstance(t, str)
@@ -138,15 +149,17 @@ def classify(
     lang: str,
     model: Optional[str] = None,
     categories: Optional[Dict[str, List[str]]] = None,
+    statuses: Optional[List[str]] = None,
+    priorities: Optional[List[str]] = None,
 ) -> Note:
     """Classify raw text into a validated Note using the given LLM client."""
     if not raw_text.strip():
         raise ClassifyError("Cannot classify empty text.")
-    messages = build_messages(raw_text, lang, categories)
+    messages = build_messages(raw_text, lang, categories, statuses, priorities)
     output = client.complete(messages, model=model, max_tokens=1024)
     data = _extract_json(output)
-    note = data_to_note(data, lang, categories)
-    errors = note.validate(categories)
+    note = data_to_note(data, lang, categories, statuses, priorities)
+    errors = note.validate(categories, statuses, priorities)
     if errors:
         logger.warning("Note validated with corrections: %s", errors)
     return note
