@@ -145,5 +145,6 @@ def test_build_prompt_renders_builtin_en_descriptions():
             categories=categories_mod.all_categories(Path(d)),
             descriptions=categories_mod.merged_descriptions(Path(d), "en"),
         )
-    assert "- art (style, concept, character, environment, ui, animation, vfx, color, none) - Visual style" in p
+    art_line = "- art (style, concept, character, environment, ui, animation, vfx, color, none)"
+    assert f"{art_line} - Visual style" in p
     assert "- misc (none) - Anything that does not fit" in p
