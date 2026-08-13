@@ -103,3 +103,28 @@ def test_add_whitespace_description_ignored(tmp_path):
     categories_mod.add(tmp_path, "Books", description="   ")
     assert categories_mod.load_descriptions(tmp_path) == {}
     assert categories_mod.load(tmp_path) == {"books": ["none"]}
+
+
+def test_load_descriptions_tolerates_malformed_file(tmp_path):
+    p = tmp_path / ".howlforge" / "categories.json"
+    p.parent.mkdir(parents=True)
+    p.write_text("{not json", encoding="utf-8")
+    assert categories_mod.load_descriptions(tmp_path) == {}
+    assert categories_mod.load(tmp_path) == {}
+
+
+def test_load_descriptions_ignores_non_dict_entries(tmp_path):
+    p = tmp_path / ".howlforge" / "categories.json"
+    p.parent.mkdir(parents=True)
+    payload = '{"plain": ["a"], "obj": {"subcategories": ["b"], "description": "D"}}'
+    p.write_text(payload, encoding="utf-8")
+    assert categories_mod.load_descriptions(tmp_path) == {"obj": "D"}
+    assert categories_mod.load(tmp_path) == {"plain": ["a"], "obj": ["b"]}
+
+
+def test_add_with_description_keeps_existing_categories(tmp_path):
+    categories_mod.add(tmp_path, "First")
+    categories_mod.add(tmp_path, "Second", description="Second desc")
+    custom = categories_mod.load(tmp_path)
+    assert custom == {"first": ["none"], "second": ["none"]}
+    assert categories_mod.load_descriptions(tmp_path) == {"second": "Second desc"}

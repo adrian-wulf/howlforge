@@ -229,3 +229,12 @@ def test_api_category_create_with_description(client, tmp_path):
     from howlforge import categories as categories_mod
 
     assert categories_mod.load_descriptions(tmp_path) == {"books": "Books to read."}
+
+
+def test_panel_renders_custom_category_description(client, tmp_path):
+    from howlforge import categories as categories_mod
+
+    categories_mod.add(tmp_path, "Books", description="Books to read and review.")
+    r = client.get("/panel")
+    assert r.status_code == 200
+    assert "Books to read and review." in r.text
