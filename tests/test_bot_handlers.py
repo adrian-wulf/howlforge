@@ -38,7 +38,8 @@ def test_on_newcat_handler_saves_description(tmp_path, monkeypatch):
     settings = Settings(language="pl", vault_path=tmp_path)
     monkeypatch.setattr(bot_mod, "get_settings", lambda: settings)
     sent: list = []
-    _run(bot_mod.on_newcat(_FakeMessage("/newcat Ksiazki recenzje | Ksiazki do przeczytania.", sent)))
+    msg = _FakeMessage("/newcat Ksiazki recenzje | Ksiazki do przeczytania.", sent)
+    _run(bot_mod.on_newcat(msg))
     assert categories_mod.load(tmp_path) == {"ksiazki": ["recenzje"]}
     assert categories_mod.load_descriptions(tmp_path) == {"ksiazki": "Ksiazki do przeczytania."}
     assert any("ksiazki" in s for s in sent)
