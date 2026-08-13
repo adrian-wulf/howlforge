@@ -208,7 +208,9 @@ Steruje panelem web, odpowiedziami bota i treścią notatek pisanych przez AI.
 Wszystko można dostosować z panelu (albo edytując pliki w vaulcie):
 
 - **Kategorie** - dodawaj/usuwaj własne kategorie i podkategorie
-  (`<vault>/.howlforge/categories.json`). Wbudowany zestaw jest pod game dev;
+  (`<vault>/.howlforge/categories.json`). Każda kategoria może mieć krótki
+  **opis**, który klasyfikator czyta, wybierając miejsce dla notatki (formularz
+  w panelu lub bot: `Nazwa pod1,pod2 | opis`). Wbudowany zestaw jest pod game dev;
   dodaj np. `ksiazki`, `zdrowie`, `finanse`, `podroze`, a klasyfikator, filtry
   i Kanban od razu je podchwycą.
 - **Statusy** i **priorytety** - dodawaj/usuwaj z własnymi polskimi i angielskimi

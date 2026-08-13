@@ -16,6 +16,8 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from . import categories as categories_mod
+from . import vocab as vocab_mod
 from .classify import ClassifyError, classify
 from .config import get_settings
 from .i18n import normalize_lang
@@ -94,11 +96,25 @@ def _cmd_doctor(args, settings) -> int:
     return 0
 
 
+def _classify_with_vault(text, settings, lang, model=None):
+    """Classify with the vault's full vocabulary (categories + descriptions)."""
+    client = LLMClient(settings.llm_config, settings.llm_model)
+    return classify(
+        text,
+        client,
+        lang,
+        model=model,
+        categories=categories_mod.all_categories(settings.vault_path),
+        statuses=vocab_mod.status_keys(settings.vault_path),
+        priorities=vocab_mod.priority_keys(settings.vault_path),
+        descriptions=categories_mod.merged_descriptions(settings.vault_path, lang),
+    )
+
+
 def _cmd_classify(args, settings, lang) -> int:
     text = " ".join(args.text)
     try:
-        client = LLMClient(settings.llm_config, settings.llm_model)
-        note = classify(text, client, lang, model=args.model)
+        note = _classify_with_vault(text, settings, lang, model=args.model)
     except (LLMError, ClassifyError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -109,8 +125,7 @@ def _cmd_classify(args, settings, lang) -> int:
 def _cmd_add(args, settings, lang) -> int:
     text = " ".join(args.text)
     try:
-        client = LLMClient(settings.llm_config, settings.llm_model)
-        note = classify(text, client, lang, model=args.model)
+        note = _classify_with_vault(text, settings, lang, model=args.model)
     except (LLMError, ClassifyError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

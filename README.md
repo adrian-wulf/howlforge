@@ -208,9 +208,11 @@ Controls the web panel, bot replies and AI-written note content.
 Everything is customizable from the panel (or by editing files in the vault):
 
 - **Categories** - add/remove your own categories + subcategories
-  (`<vault>/.howlforge/categories.json`). The built-in set is game-dev flavored;
-  add e.g. `books`, `health`, `finance`, `travel` and the classifier, filters and
-  Kanban pick them up.
+  (`<vault>/.howlforge/categories.json`). Each category can carry a short
+  **description** that the classifier reads when choosing where a note belongs
+  (panel form, or bot: `Name subs | description`). The built-in set is game-dev
+  flavored; add e.g. `books`, `health`, `finance`, `travel` and the classifier,
+  filters and Kanban pick them up.
 - **Statuses** and **priorities** - add/remove with your own Polish + English labels
   and colors (`<vault>/.howlforge/vocab.json`). They appear in the Kanban board,
   filters and classification.

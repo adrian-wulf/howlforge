@@ -72,6 +72,56 @@ CATEGORY_LABELS: Dict[str, Dict[str, str]] = {
     "misc": {"en": "Misc", "pl": "Różne"},
 }
 
+# Short descriptions of what each built-in category covers. Shown to the LLM in the
+# classification prompt so it can pick the right category for a note. Custom
+# categories get their descriptions from <vault>/.howlforge/categories.json.
+CATEGORY_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
+    "art": {
+        "en": "Visual style, concepts, characters, environments, UI, animation and VFX.",
+        "pl": "Styl wizualny, koncepty, postacie, otoczenia, UI, animacje i VFX.",
+    },
+    "gameplay": {
+        "en": "Core loops, moment-to-moment play, difficulty, controls and combat.",
+        "pl": "Rdzenne pętle, rozgrywka moment-do-momentu, trudność, sterowanie i walka.",
+    },
+    "mechanics": {
+        "en": "Rules and subsystems: economy, inventory, crafting, farming, combat.",
+        "pl": "Zasady i podsystemy: ekonomia, ekwipunek, crafting, farming, walka.",
+    },
+    "audio": {
+        "en": "Music, sound effects, ambient sound and voice-overs.",
+        "pl": "Muzyka, efekty dźwiękowe, ambient i głosy.",
+    },
+    "story": {
+        "en": "Plot, lore, characters, dialogue and worldbuilding.",
+        "pl": "Fabuła, lore, postacie, dialogi i budowa świata.",
+    },
+    "systems": {
+        "en": "Technical systems: saving, modding, procedural generation.",
+        "pl": "Systemy techniczne: zapisy, modowanie, generacja proceduralna.",
+    },
+    "technical": {
+        "en": "Engine, performance, netcode, tooling and architecture.",
+        "pl": "Silnik, wydajność, netcode, narzędzia i architektura.",
+    },
+    "production": {
+        "en": "Scope, roadmap, pipeline and task planning.",
+        "pl": "Zakres, roadmapa, pipeline i planowanie zadań.",
+    },
+    "monetization": {
+        "en": "Pricing, revenue models and DLC strategy.",
+        "pl": "Ceny, modele przychodów i strategia DLC.",
+    },
+    "marketing": {
+        "en": "Wishlists, store pages, trailers and community.",
+        "pl": "Wishlisty, strony sklepu, trailery i społeczność.",
+    },
+    "misc": {
+        "en": "Anything that does not fit the other categories.",
+        "pl": "Wszystko, co nie pasuje do pozostałych kategorii.",
+    },
+}
+
 _FIELD_LABELS: Dict[str, Dict[str, str]] = {
     "type": {"en": "Type", "pl": "Typ"},
     "project": {"en": "Project", "pl": "Projekt"},
@@ -110,6 +160,13 @@ def source_label(key: str, lang: str = LANG_DEFAULT) -> str:
 
 def category_label(key: str, lang: str = LANG_DEFAULT) -> str:
     return _pick(CATEGORY_LABELS, key, lang)
+
+
+def category_description(key: str, lang: str = LANG_DEFAULT) -> str:
+    """Short description of a category in the given language ('' if unknown)."""
+    if lang not in SUPPORTED:
+        lang = LANG_DEFAULT
+    return CATEGORY_DESCRIPTIONS.get(key, {}).get(lang, "")
 
 
 def field_label(key: str, lang: str = LANG_DEFAULT) -> str:
@@ -165,6 +222,7 @@ def ui_strings(lang: str) -> Dict[str, str]:
         "notes": "Notes",
         "new_category": "New category",
         "category_name_hint": "Category name, e.g. Narrative",
+        "category_description_hint": "Short description for AI classification (optional)",
         "subcategories_hint": "Subcategories, comma-separated (optional)",
         "add": "Add",
         "password": "Password",
@@ -234,6 +292,7 @@ def ui_strings(lang: str) -> Dict[str, str]:
         "notes": "Notatki",
         "new_category": "Nowa kategoria",
         "category_name_hint": "Nazwa kategorii, np. Narracja",
+        "category_description_hint": "Krótki opis dla klasyfikacji AI (opcjonalnie)",
         "subcategories_hint": "Podkategorie, oddzielone przecinkami (opcjonalne)",
         "add": "Dodaj",
         "password": "Hasło",

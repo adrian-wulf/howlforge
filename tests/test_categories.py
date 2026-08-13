@@ -73,3 +73,33 @@ def test_remove_missing_returns_false(tmp_path):
 def test_remove_builtin_raises(tmp_path):
     with pytest.raises(ValueError):
         categories_mod.remove(tmp_path, "Art")
+
+
+def test_add_with_description_round_trip(tmp_path):
+    categories_mod.add(tmp_path, "Books", ["Fiction"], description="Books to read and review.")
+    assert categories_mod.load(tmp_path) == {"books": ["fiction"]}
+    assert categories_mod.load_descriptions(tmp_path) == {"books": "Books to read and review."}
+
+
+def test_legacy_list_format_still_loads(tmp_path):
+    p = tmp_path / ".howlforge" / "categories.json"
+    p.parent.mkdir(parents=True)
+    p.write_text('{"old-cat": ["a", "b"]}', encoding="utf-8")
+    assert categories_mod.load(tmp_path) == {"old-cat": ["a", "b"]}
+    assert categories_mod.load_descriptions(tmp_path) == {}
+
+
+def test_merged_descriptions_include_builtins_and_custom(tmp_path):
+    categories_mod.add(tmp_path, "Books", description="Books to read.")
+    merged_en = categories_mod.merged_descriptions(tmp_path, "en")
+    assert merged_en["art"].startswith("Visual style")
+    assert merged_en["books"] == "Books to read."
+    merged_pl = categories_mod.merged_descriptions(tmp_path, "pl")
+    assert merged_pl["art"].startswith("Styl wizualny")
+    assert merged_pl["books"] == "Books to read."
+
+
+def test_add_whitespace_description_ignored(tmp_path):
+    categories_mod.add(tmp_path, "Books", description="   ")
+    assert categories_mod.load_descriptions(tmp_path) == {}
+    assert categories_mod.load(tmp_path) == {"books": ["none"]}

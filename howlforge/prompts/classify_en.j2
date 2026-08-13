@@ -21,13 +21,17 @@ CONTROLLED VOCABULARY - use ONLY these exact values.
 Types: {{ types }}
 Statuses: {{ statuses }}
 Priorities: {{ priorities }}
-Categories and their subcategories: {{ categories }}
+Categories. Each line is: name (subcategories) - description. Read each description
+to understand what the category covers and assign the note to the best fit:
+{{ categories }}
 
 RULES:
 - type: choose the most specific match. An undeveloped spark is "idea".
 - project: the project slug if the idea clearly belongs to a known project, else null.
 - status: "raw" for a brand-new capture.
-- category + subcategory: must be an exact pair from the list. Use "none" for no subcategory.
+- category + subcategory: read the category descriptions and choose the pair that
+  best matches the note's topic; the pair must come exactly from the list above.
+  Use "none" for no subcategory.
 - tags: 2-6 short, lowercase, descriptive tags.
 - related: titles of existing notes this connects to, or [] if none.
 - title: a short, concrete, actionable title.

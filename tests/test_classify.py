@@ -114,3 +114,19 @@ def test_data_to_note_coerces_bad_enum():
     assert note.category == "misc"    # fallback
     assert note.status == "raw"       # fallback
     assert note.priority == "backlog"
+
+
+def test_build_prompt_includes_category_descriptions():
+    p = build_prompt(
+        "some idea",
+        "en",
+        categories={"art": ["style", "none"], "misc": ["none"]},
+        descriptions={"art": "Visual style and concepts."},
+    )
+    assert "- art (style, none) - Visual style and concepts." in p
+    assert "- misc (none)" in p
+
+
+def test_build_prompt_renders_without_descriptions_when_missing():
+    p = build_prompt("some idea", "pl", categories={"art": ["style"]})
+    assert "- art (style)" in p

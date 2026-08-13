@@ -171,6 +171,7 @@ def panel(request: Request) -> Response:
             "notes": rows,
             "projects": projects,
             "custom_categories": custom_categories,
+            "custom_descriptions": categories_mod.load_descriptions(settings.vault_path),
             "custom_statuses": custom_vocab.get("statuses", []),
             "custom_priorities": custom_vocab.get("priorities", []),
             "statuses": vocabulary.STATUSES,
@@ -526,16 +527,24 @@ def api_categories() -> Dict[str, object]:
 class CategoryCreate(BaseModel):
     name: str = Field(..., min_length=1)
     subcategories: List[str] = Field(default_factory=list)
+    description: Optional[str] = None
 
 
 @app.post("/api/categories")
 def api_create_category(req: CategoryCreate) -> Dict[str, object]:
     settings = get_settings()
     try:
-        slug = categories_mod.add(settings.vault_path, req.name, req.subcategories)
+        slug = categories_mod.add(
+            settings.vault_path, req.name, req.subcategories, req.description
+        )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"name": req.name, "slug": slug, "subcategories": req.subcategories}
+    return {
+        "name": req.name,
+        "slug": slug,
+        "subcategories": req.subcategories,
+        "description": req.description or "",
+    }
 
 
 @app.post("/api/capture", response_model=CaptureResponse)

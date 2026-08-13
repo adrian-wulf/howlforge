@@ -122,6 +122,7 @@
       <form id="catform" class="addrow">
         <input name="name" placeholder="{{ ui.category_name_hint }}" required>
         <input name="subs" placeholder="{{ ui.subcategories_hint }}" style="flex:1">
+        <input name="desc" placeholder="{{ ui.category_description_hint }}" style="flex:1.5">
         <button type="submit">{{ ui.add }}</button>
       </form>
     </section>
@@ -134,6 +135,9 @@
         <span>{{ name }}{% if subs != ['none'] %} ({{ subs|join(', ') }}){% endif %}</span>
         <button class="delcat" data-name="{{ name }}">{{ ui.delete_category }}</button>
       </div>
+      {% if name in custom_descriptions %}
+      <div class="muted catdesc">{{ custom_descriptions[name] }}</div>
+      {% endif %}
       {% endfor %}
       {% else %}
       <div class="muted">{{ ui.no_custom_categories }}</div>
@@ -294,9 +298,10 @@
       e.preventDefault();
       const fd = new FormData(e.target);
       const subs = (fd.get('subs')||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const desc = (fd.get('desc')||'').trim();
       try {
         const r = await fetch('/api/categories', { method:'POST',
-          headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: fd.get('name'), subcategories: subs}) });
+          headers:{'Content-Type':'application/json'}, body: JSON.stringify({name: fd.get('name'), subcategories: subs, description: desc || null}) });
         if (!r.ok) { const d = await r.json().catch(()=>({})); throw new Error(d.detail||('HTTP '+r.status)); }
         const d = await r.json();
         show('ok','{{ ui.created }}: "'+d.slug+'"');

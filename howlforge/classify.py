@@ -33,9 +33,18 @@ def _build_context(
     categories: Optional[Dict[str, List[str]]] = None,
     statuses: Optional[List[str]] = None,
     priorities: Optional[List[str]] = None,
+    descriptions: Optional[Dict[str, str]] = None,
 ) -> Dict[str, str]:
     cats = categories or vocabulary.CATEGORIES
-    rendered = ", ".join(f"{cat}({', '.join(subs)})" for cat, subs in cats.items())
+    descs = descriptions or {}
+    lines = []
+    for cat, subs in cats.items():
+        sub_txt = ", ".join(subs)
+        if cat in descs:
+            lines.append(f"- {cat} ({sub_txt}) - {descs[cat]}")
+        else:
+            lines.append(f"- {cat} ({sub_txt})")
+    rendered = "\n".join(lines)
     return {
         "types": ", ".join(vocabulary.NOTE_TYPES),
         "statuses": ", ".join(statuses or vocabulary.STATUSES),
@@ -52,10 +61,11 @@ def build_prompt(
     categories: Optional[Dict[str, List[str]]] = None,
     statuses: Optional[List[str]] = None,
     priorities: Optional[List[str]] = None,
+    descriptions: Optional[Dict[str, str]] = None,
 ) -> str:
     lang = normalize_lang(lang)
     template = _PROMPTS.get_template(f"classify_{lang}.j2")
-    ctx = _build_context(lang, categories, statuses, priorities)
+    ctx = _build_context(lang, categories, statuses, priorities, descriptions)
     ctx["raw_text"] = raw_text
     return template.render(**ctx)
 
@@ -66,6 +76,7 @@ def build_messages(
     categories: Optional[Dict[str, List[str]]] = None,
     statuses: Optional[List[str]] = None,
     priorities: Optional[List[str]] = None,
+    descriptions: Optional[Dict[str, str]] = None,
 ) -> List[Dict[str, str]]:
     lang = normalize_lang(lang)
     system = (
@@ -78,7 +89,12 @@ def build_messages(
     )
     return [
         {"role": "system", "content": system},
-        {"role": "user", "content": build_prompt(raw_text, lang, categories, statuses, priorities)},
+        {
+            "role": "user",
+            "content": build_prompt(
+                raw_text, lang, categories, statuses, priorities, descriptions
+            ),
+        },
     ]
 
 
@@ -151,11 +167,14 @@ def classify(
     categories: Optional[Dict[str, List[str]]] = None,
     statuses: Optional[List[str]] = None,
     priorities: Optional[List[str]] = None,
+    descriptions: Optional[Dict[str, str]] = None,
 ) -> Note:
     """Classify raw text into a validated Note using the given LLM client."""
     if not raw_text.strip():
         raise ClassifyError("Cannot classify empty text.")
-    messages = build_messages(raw_text, lang, categories, statuses, priorities)
+    messages = build_messages(
+        raw_text, lang, categories, statuses, priorities, descriptions
+    )
     output = client.complete(messages, model=model, max_tokens=1024)
     data = _extract_json(output)
     note = data_to_note(data, lang, categories, statuses, priorities)

@@ -104,6 +104,7 @@ def capture(
     cats = categories_mod.all_categories(settings.vault_path)
     statuses = vocab_mod.status_keys(settings.vault_path)
     priorities = vocab_mod.priority_keys(settings.vault_path)
+    descriptions = categories_mod.merged_descriptions(settings.vault_path, lang)
     try:
         note = classify(
             text,
@@ -112,6 +113,7 @@ def capture(
             categories=cats,
             statuses=statuses,
             priorities=priorities,
+            descriptions=descriptions,
         )
     except (LLMError, ClassifyError) as exc:
         raise CaptureError(str(exc)) from exc

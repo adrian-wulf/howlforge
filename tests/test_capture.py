@@ -90,3 +90,31 @@ def test_reply_text_en(tmp_path):
     reply = reply_text(result, "en")
     assert "Saved" in reply
     assert "Filed under" in reply
+
+
+class RecordingClient:
+    available_models = ["howl-classify"]
+
+    def __init__(self, output: str):
+        self.output = output
+        self.prompt = ""
+
+    def complete(self, messages, model=None, **kwargs):
+        self.prompt = messages[-1]["content"] if messages else ""
+        return self.output
+
+
+def test_capture_passes_category_descriptions_to_classifier(tmp_path):
+    from howlforge import categories as categories_mod
+
+    categories_mod.add(tmp_path, "Books", description="Books to read and review.")
+    client = RecordingClient(
+        '{"type": "note", "category": "books", "subcategory": "none", '
+        '"status": "raw", "priority": "medium", "tags": ["reading"], '
+        '"related": [], "title": "Read atomic habits", '
+        '"summary": "Read Atomic Habits this month."}'
+    )
+    result = capture("Read Atomic Habits this month", _settings(tmp_path), client)
+    assert result.ok
+    assert result.note.category == "books"
+    assert "Books to read and review." in client.prompt

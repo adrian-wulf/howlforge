@@ -217,3 +217,15 @@ def test_panel_project_dashboard(client, tmp_path):
     assert "Wolf A" in r.text
     assert "Wolf B" in r.text
     assert "2" in r.text  # total notes
+
+
+def test_api_category_create_with_description(client, tmp_path):
+    r = client.post(
+        "/api/categories",
+        json={"name": "Books", "subcategories": ["Fiction"], "description": "Books to read."},
+    )
+    assert r.status_code == 200
+    assert r.json()["description"] == "Books to read."
+    from howlforge import categories as categories_mod
+
+    assert categories_mod.load_descriptions(tmp_path) == {"books": "Books to read."}

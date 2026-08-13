@@ -28,7 +28,14 @@ def _path(vault_root: Path) -> Path:
 
 
 def load(vault_root: Path) -> Dict[str, List[str]]:
-    """Load custom categories from the vault file (empty dict if none)."""
+    """Load custom categories from the vault file (empty dict if none).
+
+    Each entry is either a list of subcategories (legacy format) or an object
+    with ``subcategories`` and an optional ``description``:
+    ``{"books": ["fiction", "nonfiction"]}`` or
+    ``{"books": {"subcategories": ["fiction"], "description": "Books to read."}}``.
+    Only the subcategories are returned here; see :func:`load_descriptions`.
+    """
     p = _path(vault_root)
     if not p.exists():
         return {}
@@ -38,7 +45,35 @@ def load(vault_root: Path) -> Dict[str, List[str]]:
         return {}
     if not isinstance(data, dict):
         return {}
-    return {k: [s for s in v if isinstance(s, str)] for k, v in data.items() if isinstance(v, list)}
+    result: Dict[str, List[str]] = {}
+    for k, v in data.items():
+        if isinstance(v, list):
+            result[k] = [s for s in v if isinstance(s, str)]
+        elif isinstance(v, dict):
+            subs = v.get("subcategories", ["none"])
+            if isinstance(subs, list):
+                result[k] = [s for s in subs if isinstance(s, str)] or ["none"]
+    return result
+
+
+def load_descriptions(vault_root: Path) -> Dict[str, str]:
+    """Load custom category descriptions from the vault file (empty dict if none)."""
+    p = _path(vault_root)
+    if not p.exists():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    out: Dict[str, str] = {}
+    for k, v in data.items():
+        if isinstance(v, dict) and isinstance(v.get("description"), str):
+            desc = v["description"].strip()
+            if desc:
+                out[k] = desc
+    return out
 
 
 def save(vault_root: Path, custom: Dict[str, List[str]]) -> None:
@@ -47,8 +82,16 @@ def save(vault_root: Path, custom: Dict[str, List[str]]) -> None:
     p.write_text(json.dumps(custom, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def add(vault_root: Path, name: str, subcategories: List[str] | None = None) -> str:
+def add(
+    vault_root: Path,
+    name: str,
+    subcategories: List[str] | None = None,
+    description: str | None = None,
+) -> str:
     """Add a new custom category and return its slug.
+
+    An optional ``description`` is stored next to the subcategories and is shown
+    to the LLM during classification so notes get assigned to the right category.
 
     Raises :class:`ValueError` for empty/duplicate names (including collisions
     with built-in categories).
@@ -62,7 +105,11 @@ def add(vault_root: Path, name: str, subcategories: List[str] | None = None) -> 
     if name in custom:
         raise ValueError(f"Category '{name}' already exists.")
     subs = [_slug(s) for s in (subcategories or []) if _slug(s)]
-    custom[name] = subs or ["none"]
+    desc = (description or "").strip()
+    if desc:
+        custom[name] = {"subcategories": subs or ["none"], "description": desc}
+    else:
+        custom[name] = subs or ["none"]
     save(vault_root, custom)
     return name
 
@@ -102,3 +149,21 @@ def is_valid_subcategory(
     vault_root: Optional[Path] = None,
 ) -> bool:
     return subcategory in all_categories(vault_root).get(category, [])
+
+
+def merged_descriptions(vault_root: Path, lang: str = "en") -> Dict[str, str]:
+    """Return category descriptions for the classification prompt.
+
+    Built-in descriptions come from :mod:`howlforge.i18n` in the chosen language;
+    per-vault custom descriptions (if any) are merged over them.
+    """
+    from .i18n import category_description, normalize_lang
+
+    lang = normalize_lang(lang)
+    merged: Dict[str, str] = {}
+    for cat in vocabulary.CATEGORIES:
+        desc = category_description(cat, lang)
+        if desc:
+            merged[cat] = desc
+    merged.update(load_descriptions(vault_root))
+    return merged

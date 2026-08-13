@@ -171,13 +171,13 @@ def _help_text(lang: str) -> str:
             "HowlForge\n"
             "Send any thought and I'll classify and save it.\n"
             "Buttons: Add idea / New project / New category / Project / Language.\n"
-            "Commands: /help, /lang, /newcat Name sub1,sub2, /cancel"
+            "Commands: /help, /lang, /newcat Name sub1,sub2 | description, /cancel"
         )
     return (
         "HowlForge\n"
         "Wyślij dowolną myśl, a ja ją sklasyfikuję i zapiszę.\n"
         "Przyciski: Dodaj pomysł / Nowy projekt / Nowa kategoria / Projekt / Język.\n"
-        "Komendy: /help, /lang, /newcat Nazwa pod1,pod2, /cancel"
+        "Komendy: /help, /lang, /newcat Nazwa pod1,pod2 | opis, /cancel"
     )
 
 
@@ -243,14 +243,24 @@ async def on_newcat(message: Message) -> None:
     if not _is_allowed(message, settings):
         return
     text = (message.text or "").removeprefix("/newcat").strip()
+    lang = _lang(message, settings)
     if not text:
-        await message.answer("Usage: /newcat CategoryName sub1,sub2")
+        usage = _L(
+            lang,
+            "Usage: /newcat CategoryName sub1,sub2 | short description",
+            "Użycie: /newcat NazwaKategorii pod1,pod2 | krótki opis",
+        )
+        await message.answer(usage)
         return
+    description = ""
+    if "|" in text:
+        text, description = text.split("|", 1)
+    text = text.strip()
     parts = text.split(None, 1)
     name = parts[0]
     subs = parts[1].split(",") if len(parts) > 1 else []
     try:
-        slug = categories_mod.add(settings.vault_path, name, subs)
+        slug = categories_mod.add(settings.vault_path, name, subs, description=description)
     except ValueError as exc:
         await message.answer(f"Could not add category: {exc}")
         return
@@ -302,8 +312,10 @@ async def on_text(message: Message) -> None:
         _set_flow(message, step="await_category")
         prompt = _L(
             lang,
-            "Send the category name and optional subcategories: Name sub1,sub2",
-            "Podaj nazwę kategorii i opcjonalnie podkategorie: Nazwa pod1,pod2",
+            "Send the category name, optional subcategories and an optional "
+            "description: Name sub1,sub2 | description",
+            "Podaj nazwę kategorii, opcjonalne podkategorie i opcjonalny opis: "
+            "Nazwa pod1,pod2 | opis",
         )
         await message.answer(prompt)
         return
@@ -491,11 +503,15 @@ async def on_text(message: Message) -> None:
 
     # --- Guided: awaiting new category -------------------------------------
     if flow and flow.get("step") == "await_category":
+        description = ""
+        if "|" in text:
+            text, description = text.split("|", 1)
+        text = text.strip()
         parts = text.split(None, 1)
         name = parts[0]
         subs = parts[1].split(",") if len(parts) > 1 else []
         try:
-            slug = categories_mod.add(settings.vault_path, name, subs)
+            slug = categories_mod.add(settings.vault_path, name, subs, description=description)
         except ValueError as exc:
             await message.answer(f"{_L(lang, 'Could not add', 'Nie udało się dodać')}: {exc}")
             return
