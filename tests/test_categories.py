@@ -128,3 +128,10 @@ def test_add_with_description_keeps_existing_categories(tmp_path):
     custom = categories_mod.load(tmp_path)
     assert custom == {"first": ["none"], "second": ["none"]}
     assert categories_mod.load_descriptions(tmp_path) == {"second": "Second desc"}
+
+
+def test_remove_category_also_removes_description(tmp_path):
+    categories_mod.add(tmp_path, "Books", description="Books to read.")
+    assert categories_mod.load_descriptions(tmp_path) == {"books": "Books to read."}
+    assert categories_mod.remove(tmp_path, "Books") is True
+    assert categories_mod.load_descriptions(tmp_path) == {}

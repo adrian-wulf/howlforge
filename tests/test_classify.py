@@ -130,3 +130,20 @@ def test_build_prompt_includes_category_descriptions():
 def test_build_prompt_renders_without_descriptions_when_missing():
     p = build_prompt("some idea", "pl", categories={"art": ["style"]})
     assert "- art (style)" in p
+
+
+def test_build_prompt_renders_builtin_en_descriptions():
+    import tempfile
+    from pathlib import Path
+
+    from howlforge import categories as categories_mod
+
+    with tempfile.TemporaryDirectory() as d:
+        p = build_prompt(
+            "some idea",
+            "en",
+            categories=categories_mod.all_categories(Path(d)),
+            descriptions=categories_mod.merged_descriptions(Path(d), "en"),
+        )
+    assert "- art (style, concept, character, environment, ui, animation, vfx, color, none) - Visual style" in p
+    assert "- misc (none) - Anything that does not fit" in p
