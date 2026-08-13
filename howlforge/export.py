@@ -1,7 +1,7 @@
-"""Export notes for a game engine (Unity / Godot / Unreal).
+"""Export notes to JSON or CSV.
 
-Produces machine-readable views of the vault so mechanics and assets can be loaded
-by tooling or editors:
+Produces machine-readable views of the vault so notes can be loaded by
+spreadsheets, scripts, game engines or any other tooling:
 * ``JSON`` - an array of note objects (with tags as a list).
 * ``CSV`` - flat rows with a subset of scalar fields.
 

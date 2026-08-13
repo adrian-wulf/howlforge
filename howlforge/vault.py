@@ -27,7 +27,7 @@ LAYOUT: list[str] = [
     "_MOC",
 ]
 
-# Project-scoped subfolders, created on demand inside a project.
+# Project-scoped subfolders (game-dev defaults), created on demand inside a project.
 PROJECT_SUBFOLDERS = ["GDD", "Mechanics", "Art", "Audio", "Systems"]
 
 

@@ -1,41 +1,71 @@
 # HowlForge
 
-> Self-hostowany **drugi mózg do produkcji gier**. Złap pomysł na telefonie, pozwól
-> AI go sklasyfikować i zobacz, jak trafia do zorganizowanego Markdown vaulta, który
-> jest w 100% Twój. Open-source, niezależny od providera, działa za **$0** od startu.
+> Self-hostowany **drugi mózg** na wszystko, co myślisz, łapiesz i planujesz. Złap
+> myśl na telefonie, pozwól AI ją posegregować i zobacz, jak trafia do
+> zorganizowanego Markdown vaulta, który jest w 100% Twój. Produkcja gier, research,
+> pisanie, notatki osobiste, projekty poboczne - jedna skrzynka, jeden system.
+> Open-source, niezależny od providera, działa za **$0** od startu.
 
 [English](README.md) | Polski
 
 ```
-Telegram (łapanie)  ->  AI klasyfikacja (LiteLLM)  ->  Markdown vault (źródło prawdy)
-                                            \->  Obsidian / Dataview / panel web
+Telegram / Web / CLI  ->  AI klasyfikacja (LiteLLM)  ->  Markdown vault (źródło prawdy)
+                                                 \->  Obsidian / Dataview / panel web
 ```
+
+## Czym jest HowlForge?
+
+Self-hostowana baza wiedzy osobistej (PKM / drugi mózg). Ty łapiesz, ono organizuje:
+
+- **Łapanie zewsząd** - Telegram na telefonie, panel web, CLI albo zwykłe HTTP API.
+- **AI robi segregację** - typ notatki, kategoria, tagi, projekt, status, priorytet,
+  tytuł i podsumowanie. Opcjonalnie: wszystko działa bez klucza AI.
+- **Wszystko ląduje w zwykłych plikach Markdown** z YAML frontmatter, w strukturze
+  folderów, którą kontrolujesz.
+- **Czytasz i edytujesz czym chcesz** - wbudowanym panelem, Obsidianem, Logseq,
+  VS Code, gitem, dowolnym agentem.
+
+HowlForge narodził się jako narzędzie do produkcji gier (dlatego wbudowane
+słownictwo zna GDD, mechaniki, art, audio...), ale słownictwo jest w pełni
+rozszerzalne - kategorie, statusy i priorytety - więc ten sam silnik obsłuży każdą
+dziedzinę: research, pisanie, naukę, startupy, życie osobiste.
+
+### Przykładowe zastosowania
+
+| Dziedzina | Co dostajesz |
+|---|---|
+| **Produkcja gier** | strony GDD, mechaniki, briefy art, pomysły marketingowe; tablice Kanban per projekt |
+| **Osobisty drugi mózg** | zapis z telefonu -> automatycznie posegregowany inbox, nocne digesty AI, wyszukiwanie semantyczne |
+| **Research i pisanie** | źródła w `30 Assets & References`, inspiracje w `40 Inspiration`, digesty syntezy |
+| **Dowolny projekt** | folder na projekt, statusy/priorytety, Kanban, eksport JSON/CSV do narzędzi |
 
 ## Dlaczego Markdown?
 
 - **Zero vendor lock-in** - Twoje notatki to zwykłe pliki, które przetrwają każde narzędzie.
-- **Git natywnie** - pełna historia każdego pomysłu.
+- **Git natywnie** - pełna historia każdej notatki.
 - **Obsidian / Logseq / Cursor / Claude Code czytają to od razu.**
 - **Przyjazne AI** - LLM-y kochają Markdown + YAML frontmatter.
-- **Gotowe pod wektory** - wyszukiwanie semantyczne wbudowane.
+- **Wyszukiwanie semantyczne wbudowane** - wektory w SQLite, bez natywnych rozszerzeń.
 
 ## Funkcje
 
 - **Niezależne od providera AI** przez LiteLLM - Claude, Gemini, GPT, DeepSeek,
   **NVIDIA NIM** (darmowe) i 100+ innych. Domyślny config działa na NVIDIA NIM = **$0**.
-- **Kontrolowane słownictwo**, które możesz rozszerzać: statusy, priorytety oraz
-  kategorie/podkategorie pozostają stabilne, więc tabele Dataview się nie psują.
+- **AI jest opcjonalne** - łapanie, panel, Kanban i wyszukiwanie działają bez klucza.
+- **Kontrolowane słownictwo**, które rozszerzasz: statusy, priorytety oraz
+  kategorie/podkategorie pozostają walidowane, więc tabele Dataview się nie psują.
+  Wbudowany zestaw jest pod game dev; dodaj własne pod dowolną dziedzinę.
 - **PL / EN** interfejs, odpowiedzi bota i treść notatek AI - jednym ustawieniem.
-- **Projekty** - twórz projekty i przypisuj do nich pomysły; notatki same się przenoszą.
-  Każdy projekt ma **tablicę Kanban** (kolumny kategorii, badge statusu/priorytetu z
-  kolorem i symbolem, filtry).
-- **Panel web** - dodawanie/edycja/**usuwanie** pomysłów, filtry, projekty, dashboardy.
-  Działa **bez klucza AI**.
+- **Projekty** - twórz projekty i przypisuj do nich notatki; notatki same się
+  przenoszą. Każdy projekt ma **tablicę Kanban** (kolumny kategorii, badge
+  statusu/priorytetu z kolorem i symbolem, filtry).
+- **Panel web** - dodawanie/edycja/**usuwanie** notatek, filtry, projekty,
+  dashboardy. Działa **bez klucza AI**.
 - **Bot Telegram** - łap pomysły z telefonu; dodawaj kategorie przez `/newcat`;
   dodawaj i usuwaj notatki, projekty i kategorie przez klawiaturę.
 - **Nocna synteza AI** - digesty append-only; nigdy nie nadpisuje Twoich notatek.
 - **Wyszukiwanie semantyczne** - indeks wektorowy w SQLite, bez natywnych rozszerzeń.
-- **Eksport JSON/CSV** pod Unity / Godot / Unreal.
+- **Eksport JSON/CSV** - do arkuszy, skryptów, silników gier, dowolnych narzędzi.
 - **Autoryzacja** - opcjonalne hasło panelu/API do bezpiecznego hostingu.
 
 ## Architektura
@@ -53,14 +83,17 @@ Vault  =  folder plików .md z YAML frontmatter
 
 ```
 vault/
- 00 Inbox/                surowe wpisy
- 10 Projects/<slug>/      GDD, Mechanics, Art, Audio, Systems
- 20 Systems/              uniwersalne mechaniki
- 30 Assets & References/
- 40 Inspiration/
- 90 Archive/
+ 00 Inbox/                surowe wpisy czekające na segregację
+ 10 Projects/<slug>/      folder na projekt (podfoldery według typów notatek)
+ 20 Systems/              systemy i wzorce wielokrotnego użytku
+ 30 Assets & References/  assety, źródła, linki badawcze
+ 40 Inspiration/          nastrój, wpływy, inspiracje
+ 90 Archive/              zrobione / odrzucone / uśpione
  _MOC/                    Mapy treści + digesty syntezy AI
 ```
+
+Układ to konwencja, nie klatka: zmieniaj nazwy folderów, dodawaj własne kategorie
+i podkategorie, a notatki podążają za swoim frontmatterem.
 
 ## Szybki start (lokalnie)
 
@@ -80,11 +113,11 @@ Potem otwórz **http://127.0.0.1:8000/panel**.
 
 Możesz też użyć Makefile: `make dev`, `make run`, `make test`, `make lint`.
 
-### Dodanie pomysłu (bez klucza AI)
+### Dodanie notatki (bez klucza AI)
 
 ```bash
 curl -X POST localhost:8000/api/capture -H 'content-type: application/json' \
-     -d '{"text":"Kooperacyjny roguelike o wilczej sfory","ai":false,"project":"wolfpack","category":"gameplay"}'
+     -d '{"text":"Szablon cotygodniowego przeglądu dla całego zespołu","ai":false,"project":"praca","category":"production","subcategory":"tasks"}'
 ```
 
 Albo po prostu użyj formularza "Dodaj pomysł" w panelu.
@@ -99,8 +132,12 @@ NVIDIA_API_KEY=...          # darmowy domyślny
 ```
 
 ```bash
-howlforge add "Idle farming, w którym uprawy w nocy zamieniają się w potwory"
+howlforge add "Numer newslettera o koszcie przełączania kontekstu"
+howlforge add "Kooperacyjny roguelike o wilczej sforze"
 ```
+
+Klasyfikacja działa w każdej dziedzinie. Dodaj własne kategorie z panelu lub bota,
+a klasyfikator zacznie ich używać.
 
 ### Bot Telegram
 
@@ -141,7 +178,7 @@ przypisując ją do domyślnego projektu, jeśli jest ustawiony.
 `uvicorn howlforge.server:app --port 8000`, potem:
 
 - Panel: `http://localhost:8000/panel`
-- Dodawanie pomysłu / projektu / kategorii, edycja notatek, dashboardy z panelu.
+- Dodawanie notatki / projektu / kategorii, edycja notatek, dashboardy z panelu.
 - **Usuwanie** notatek, projektów i kategorii z panelu.
 - API: `GET /api/notes`, `GET /api/notes/{path}`, `PATCH /api/notes/{path}`,
   `DELETE /api/notes/{path}`, `POST /api/capture`, `GET /api/projects`,
@@ -166,15 +203,19 @@ HOWLFORGE_LANGUAGE=pl       # lub en
 
 Steruje panelem web, odpowiedziami bota i treścią notatek pisanych przez AI.
 
-### Własne słownictwo (statusy, priorytety, kategorie)
+### Własne słownictwo (kategorie, statusy, priorytety)
 
 Wszystko można dostosować z panelu (albo edytując pliki w vaulcie):
 
 - **Kategorie** - dodawaj/usuwaj własne kategorie i podkategorie
-  (`<vault>/.howlforge/categories.json`).
+  (`<vault>/.howlforge/categories.json`). Wbudowany zestaw jest pod game dev;
+  dodaj np. `ksiazki`, `zdrowie`, `finanse`, `podroze`, a klasyfikator, filtry
+  i Kanban od razu je podchwycą.
 - **Statusy** i **priorytety** - dodawaj/usuwaj z własnymi polskimi i angielskimi
   etykietami oraz kolorami (`<vault>/.howlforge/vocab.json`). Pojawiają się na
   tablicy Kanban, w filtrach i klasyfikacji.
+- **Typy notatek** (`idea`, `note`, `system`, ...) są zdefiniowane w
+  `howlforge/vocabulary.py` - edytuj tam, jeśli chcesz inny zestaw.
 - Wartości wbudowanych nie można usunąć, ale możesz dodać ile chcesz.
 
 Tablica Kanban jest pod `/panel/project/<slug>/board` (albo wejdź w projekt i kliknij
@@ -222,7 +263,7 @@ HOWLFORGE_DOMAIN=howl.example.com docker compose --profile https \
 
 ```bash
 pip install -e ".[dev]"
-pytest                    # 87 testów
+pytest                    # testy
 ruff check .              # lint
 ```
 
@@ -230,13 +271,13 @@ ruff check .              # lint
 
 ```
 howlforge/
-  vocabulary.py     kontrolowane słownictwo (statusy, priorytety, kategorie)
+  vocabulary.py     kontrolowane słownictwo (typy notatek, statusy, priorytety, kategorie)
   categories.py     rozszerzalne kategorie per-vault
   schema.py         model notatki + YAML frontmatter
   i18n.py           etykiety PL/EN + teksty UI
   llm.py            klient LiteLLM (kompletacje + embeddingi)
   classify.py       pipeline klasyfikacji (prompt -> JSON -> walidacja)
-  capture.py        usługa łapania pomysłów (manualna + AI)
+  capture.py        usługa łapania (manualna + AI)
   synthesize.py     nocne digesty append-only
   search.py         wyszukiwanie semantyczne (wektory w SQLite)
   export.py         eksport JSON/CSV

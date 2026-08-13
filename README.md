@@ -1,41 +1,72 @@
 # HowlForge
 
-> Self-hosted **second brain for game production**. Capture an idea on your phone,
-> let an AI classify it, and watch it land in an organized Markdown vault you own
-> forever. Open-source, provider-agnostic, works at **$0** out of the box.
+> Self-hosted **second brain** for everything you think, capture and plan. Catch a
+> thought on your phone, let an AI file it, and watch it land in an organized
+> Markdown vault you own forever. Game production, research, writing, personal
+> notes, side projects - one inbox, one system. Open-source, provider-agnostic,
+> works at **$0** out of the box.
 
 [Polski](README.pl.md) | English
 
 ```
-Telegram (capture)  ->  AI classify (LiteLLM)  ->  Markdown vault (source of truth)
-                                        \->  Obsidian / Dataview / Web panel
+Telegram / Web / CLI  ->  AI classify (LiteLLM)  ->  Markdown vault (source of truth)
+                                             \->  Obsidian / Dataview / Web panel
 ```
+
+## What is HowlForge?
+
+A self-hosted personal knowledge base (PKM / second brain). You capture, it organizes:
+
+- **Capture from anywhere** - Telegram on your phone, the web panel, the CLI, or a
+  plain HTTP API.
+- **AI does the triage** - note type, category, tags, project, status, priority,
+  title and summary. Optional: everything works without an AI key.
+- **Everything lands in plain Markdown files** with YAML frontmatter, in a folder
+  tree you control.
+- **You read and edit with anything** - the built-in panel, Obsidian, Logseq,
+  VS Code, git, any agent.
+
+HowlForge was born as a game-production tool (that's why the built-in vocabulary
+knows GDD, mechanics, art, audio...), but the vocabulary is fully extensible -
+categories, statuses and priorities - so the same engine drives any domain:
+research, writing, studying, startups, personal life.
+
+### Example workflows
+
+| Domain | What you get |
+|---|---|
+| **Game production** | GDD pages, mechanics, art briefs, marketing ideas; per-project Kanban boards |
+| **Personal second brain** | phone captures -> auto-filed inbox, nightly AI digests, semantic search |
+| **Research & writing** | sources in `30 Assets & References`, influences in `40 Inspiration`, synthesis digests |
+| **Any project** | one folder per project, statuses/priorities, Kanban, JSON/CSV export for tooling |
 
 ## Why Markdown?
 
 - **Zero vendor lock-in** - your notes are plain files that outlive any tool.
-- **Git-native** - full history of every idea.
+- **Git-native** - full history of every note.
 - **Obsidian / Logseq / Cursor / Claude Code read it today.**
 - **AI-friendly** - LLMs love Markdown + YAML frontmatter.
-- **Vector-ready** - add semantic search easily (built in).
+- **Semantic search built in** - SQLite vectors, no native extension needed.
 
 ## Features
 
 - **Provider-agnostic AI** via LiteLLM - Claude, Gemini, GPT, DeepSeek, **NVIDIA NIM**
   (free) and 100+ more. Default config runs on NVIDIA NIM = **$0**.
-- **Controlled vocabulary** that you can extend: statuses, priorities and
-  categories/subcategories stay stable so your Dataview tables never break.
+- **AI is optional** - capture, panel, Kanban and search all work without any key.
+- **Controlled vocabulary** that you extend: statuses, priorities and
+  categories/subcategories stay validated so your Dataview tables never break.
+  The built-in set is game-dev flavored; add your own for any domain.
 - **PL / EN** UI, bot replies and AI note content, controlled by one setting.
-- **Projects** - create projects and assign ideas to them; notes move folders. Each
+- **Projects** - create projects and assign notes to them; notes move folders. Each
   project has a **Kanban board** (category columns, status/priority color + symbol
   badges, filters).
-- **Web panel** - add/edit/**delete** ideas, filter, projects, per-project dashboards.
-  Works **without any AI key**.
+- **Web panel** - add/edit/**delete** notes, filter, projects, per-project
+  dashboards. Works **without any AI key**.
 - **Telegram bot** - capture ideas from your phone; add categories via `/newcat`;
   add and delete notes, projects and categories via the reply keyboard.
 - **Nightly AI synthesis** - append-only digests; never overwrites your notes.
 - **Semantic search** - SQLite vector index, no native extension needed.
-- **JSON/CSV export** for Unity / Godot / Unreal.
+- **JSON/CSV export** - for spreadsheets, scripts, game engines, any tooling.
 - **Auth** - optional panel/API password for safe hosting.
 
 ## Architecture
@@ -53,14 +84,17 @@ Vault  =  folder of .md files with YAML frontmatter
 
 ```
 vault/
- 00 Inbox/                raw captures
- 10 Projects/<slug>/      GDD, Mechanics, Art, Audio, Systems
- 20 Systems/              universal mechanics
- 30 Assets & References/
- 40 Inspiration/
- 90 Archive/
+ 00 Inbox/                raw captures waiting for triage
+ 10 Projects/<slug>/      one folder per project (subfolders follow note types)
+ 20 Systems/              reusable systems and patterns
+ 30 Assets & References/  reusable assets, sources, research links
+ 40 Inspiration/          mood, influences, inspiration
+ 90 Archive/              done / rejected / dormant
  _MOC/                    Maps of Content + AI synthesis digests
 ```
+
+The layout is a convention, not a cage: rename folders, add your own categories and
+subcategories, and notes follow their frontmatter.
 
 ## Quick start (local)
 
@@ -80,11 +114,11 @@ Then open **http://127.0.0.1:8000/panel**.
 
 Or use the Makefile: `make dev`, `make run`, `make test`, `make lint`.
 
-### Add an idea (no AI key needed)
+### Add a note (no AI key needed)
 
 ```bash
 curl -X POST localhost:8000/api/capture -H 'content-type: application/json' \
-     -d '{"text":"Co-op wolf pack roguelike","ai":false,"project":"wolfpack","category":"gameplay"}'
+     -d '{"text":"Weekly review template for the whole team","ai":false,"project":"work","category":"production","subcategory":"tasks"}'
 ```
 
 Or just use the "Add an idea" form in the panel.
@@ -99,8 +133,12 @@ NVIDIA_API_KEY=...          # free default
 ```
 
 ```bash
-howlforge add "Idle farming where crops evolve into monsters at night"
+howlforge add "A newsletter issue about the cost of context switching"
+howlforge add "Co-op roguelike about a wolf pack"
 ```
+
+Classification works in any domain. Add your own categories from the panel or bot
+and the classifier will use them.
 
 ### Telegram bot
 
@@ -141,7 +179,7 @@ it to your default project when one is set.
 `uvicorn howlforge.server:app --port 8000`, then:
 
 - Panel: `http://localhost:8000/panel`
-- Add idea / project / category / edit notes / dashboards from the panel.
+- Add note / project / category / edit notes / dashboards from the panel.
 - **Delete** notes, projects and categories from the panel.
 - API: `GET /api/notes`, `GET /api/notes/{path}`, `PATCH /api/notes/{path}`,
   `DELETE /api/notes/{path}`, `POST /api/capture`, `GET /api/projects`,
@@ -165,15 +203,19 @@ HOWLFORGE_LANGUAGE=pl       # or en
 
 Controls the web panel, bot replies and AI-written note content.
 
-### Custom vocabulary (statuses, priorities, categories)
+### Custom vocabulary (categories, statuses, priorities)
 
 Everything is customizable from the panel (or by editing files in the vault):
 
 - **Categories** - add/remove your own categories + subcategories
-  (`<vault>/.howlforge/categories.json`).
+  (`<vault>/.howlforge/categories.json`). The built-in set is game-dev flavored;
+  add e.g. `books`, `health`, `finance`, `travel` and the classifier, filters and
+  Kanban pick them up.
 - **Statuses** and **priorities** - add/remove with your own Polish + English labels
   and colors (`<vault>/.howlforge/vocab.json`). They appear in the Kanban board,
   filters and classification.
+- **Note types** (`idea`, `note`, `system`, ...) are defined in
+  `howlforge/vocabulary.py` - edit there if you want a different set.
 - Built-in values can't be removed, but you can add as many as you like.
 
 The Kanban board is at `/panel/project/<slug>/board` (or click the project, then
@@ -221,7 +263,7 @@ HOWLFORGE_DOMAIN=howl.example.com docker compose --profile https \
 
 ```bash
 pip install -e ".[dev]"
-pytest                    # 87 tests
+pytest                    # test suite
 ruff check .              # lint
 ```
 
@@ -229,7 +271,7 @@ ruff check .              # lint
 
 ```
 howlforge/
-  vocabulary.py     controlled vocabulary (statuses, priorities, categories)
+  vocabulary.py     controlled vocabulary (note types, statuses, priorities, categories)
   categories.py     extendable per-vault categories
   schema.py         note model + YAML frontmatter
   i18n.py           PL/EN labels + UI strings

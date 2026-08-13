@@ -54,7 +54,7 @@ def _build_parser() -> argparse.ArgumentParser:
     srch.add_argument("query", nargs="+", help="The search query.")
     srch.add_argument("-k", type=int, default=5, help="Number of results (default 5).")
 
-    exp = sub.add_parser("export", help="Export notes to JSON or CSV for a game engine.")
+    exp = sub.add_parser("export", help="Export notes to JSON or CSV.")
     exp.add_argument("--format", choices=["json", "csv"], default="json", help="Output format.")
     exp.add_argument("--project", default=None, help="Restrict to one project slug.")
     exp.add_argument("--out", default=None, help="Output file path (default: stdout).")

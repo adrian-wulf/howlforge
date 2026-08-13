@@ -15,12 +15,12 @@ from typing import Dict, List, Literal
 # ---- Top-level note types (map to destination folders) ---------------------
 NOTE_TYPES: List[str] = [
     "idea",        # raw spark, starts in Inbox
-    "mechanic",    # a game mechanic / rule
+    "mechanic",    # a mechanic / reusable rule
     "system",      # a coherent system built from mechanics
     "asset",       # a reusable asset (art, audio, model, script)
     "reference",   # a reference or research link
     "inspiration", # inspiration / mood / influence
-    "gdd",         # game design document section / page
+    "gdd",         # design document section / page (game-dev default)
     "synthesis",   # AI-generated digest (append-only, never overwrites source)
     "note",        # generic note
 ]
