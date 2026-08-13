@@ -84,6 +84,18 @@ def _L(lang: str, en: str, pl: str) -> str:
     return en if lang == "en" else pl
 
 
+def _parse_newcat(text: str) -> tuple[str, list[str], str]:
+    """Parse 'Name sub1,sub2 | description' -> (name, subs, description)."""
+    description = ""
+    if "|" in text:
+        text, description = text.split("|", 1)
+    text = text.strip()
+    parts = text.split(None, 1)
+    name = parts[0]
+    subs = parts[1].split(",") if len(parts) > 1 else []
+    return name, subs, description.strip()
+
+
 def _menu(lang: str) -> ReplyKeyboardMarkup:
     labels = (
         [
@@ -252,13 +264,7 @@ async def on_newcat(message: Message) -> None:
         )
         await message.answer(usage)
         return
-    description = ""
-    if "|" in text:
-        text, description = text.split("|", 1)
-    text = text.strip()
-    parts = text.split(None, 1)
-    name = parts[0]
-    subs = parts[1].split(",") if len(parts) > 1 else []
+    name, subs, description = _parse_newcat(text)
     try:
         slug = categories_mod.add(settings.vault_path, name, subs, description=description)
     except ValueError as exc:
@@ -503,13 +509,7 @@ async def on_text(message: Message) -> None:
 
     # --- Guided: awaiting new category -------------------------------------
     if flow and flow.get("step") == "await_category":
-        description = ""
-        if "|" in text:
-            text, description = text.split("|", 1)
-        text = text.strip()
-        parts = text.split(None, 1)
-        name = parts[0]
-        subs = parts[1].split(",") if len(parts) > 1 else []
+        name, subs, description = _parse_newcat(text)
         try:
             slug = categories_mod.add(settings.vault_path, name, subs, description=description)
         except ValueError as exc:

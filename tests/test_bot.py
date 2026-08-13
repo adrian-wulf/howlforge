@@ -51,3 +51,24 @@ def test_category_menu_has_auto_and_cancel():
     assert "art" in texts
     assert "Auto (AI)" in texts
     assert "Cancel" in texts
+
+
+def test_parse_newcat_with_description():
+    from howlforge.bot import _parse_newcat
+
+    name, subs, desc = _parse_newcat("Books fiction,nonfiction | Books to read.")
+    assert (name, subs, desc) == ("Books", ["fiction", "nonfiction"], "Books to read.")
+
+
+def test_parse_newcat_no_description():
+    from howlforge.bot import _parse_newcat
+
+    name, subs, desc = _parse_newcat("Books fiction, nonfiction")
+    assert (name, subs, desc) == ("Books", ["fiction", " nonfiction"], "")
+
+
+def test_parse_newcat_name_only():
+    from howlforge.bot import _parse_newcat
+
+    name, subs, desc = _parse_newcat("Books")
+    assert (name, subs, desc) == ("Books", [], "")
